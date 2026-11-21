@@ -44,6 +44,9 @@ namespace Windower.Core
         /// </summary>
         private static readonly byte[] jumpToSelf = { 0xEB, 0xFE };
 
+        /// <summary>How long to wait for the game to reach its entry point, and for a DLL to load.</summary>
+        private const uint LoadTimeoutMilliseconds = 30000;
+
         /// <summary>
         /// The disposed flag
         /// </summary>
@@ -197,7 +200,17 @@ namespace Windower.Core
                         throw new Win32Exception();
                     }
 
-                    if (NativeMethods.WaitForSingleObject(remoteThread, NativeMethods.INFINITE) != NativeMethods.WAIT_OBJECT_0)
+                    // Oriel: wait off the UI thread and give up after a while instead of hanging
+                    // the launcher forever if the DLL never finishes loading.
+                    var waitResult = await Task.Run(() => NativeMethods.WaitForSingleObject(remoteThread, LoadTimeoutMilliseconds));
+                    if (waitResult == NativeMethods.WAIT_TIMEOUT)
+                    {
+                        KillProcess();
+                        throw new TimeoutException(Path.GetFileName(dllPath) + " did not finish loading within " +
+                            (LoadTimeoutMilliseconds / 1000) + " seconds. The game process was stopped.");
+                    }
+
+                    if (waitResult != NativeMethods.WAIT_OBJECT_0)
                     {
                         throw new Win32Exception();
                     }
@@ -276,8 +289,16 @@ namespace Windower.Core
 
                     try
                     {
+                        var waited = Stopwatch.StartNew();
                         while (GetInstructionPointer() != entrypoint)
                         {
+                            if (waited.ElapsedMilliseconds > LoadTimeoutMilliseconds)
+                            {
+                                KillProcess();
+                                throw new TimeoutException("The game process did not reach its entry point within " +
+                                    (LoadTimeoutMilliseconds / 1000) + " seconds. The game process was stopped.");
+                            }
+
                             await Task.Delay(10);
                         }
                     }
@@ -360,6 +381,22 @@ namespace Windower.Core
         }
 
         /// <summary>
+        /// Stops the game process, ignoring errors if it has already exited.
+        /// </summary>
+        private void KillProcess()
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill();
+                }
+            }
+            catch (InvalidOperationException) { }
+            catch (Win32Exception) { }
+        }
+
+        /// <summary>
         /// Suspends the main thread.
         /// </summary>
         /// <exception cref="System.ComponentModel.Win32Exception">The process could not be suspended.</exception>
@@ -418,7 +455,11 @@ namespace Windower.Core
                     var context = default(NativeMethods.WOW64_CONTEXT);
                     context.ContextFlags = NativeMethods.CONTEXT_CONTROL;
                     Marshal.StructureToPtr(context, aligned, false);
-                    NativeMethods.Wow64GetThreadContext(threadHandle, aligned);
+                    if (!NativeMethods.Wow64GetThreadContext(threadHandle, aligned))
+                    {
+                        throw new Win32Exception();
+                    }
+
                     context = (NativeMethods.WOW64_CONTEXT)Marshal.PtrToStructure(aligned, typeof(NativeMethods.WOW64_CONTEXT));
                     return new IntPtr((int)context.Eip);
                 }

@@ -137,6 +137,9 @@ namespace Windower.Core
         /// </remarks>
         internal const uint WAIT_OBJECT_0 = 0x00000000;
 
+        /// <summary>The time-out interval elapsed, and the object's state is nonsignaled.</summary>
+        internal const uint WAIT_TIMEOUT = 0x00000102;
+
         internal const int ERROR_SUCCESS = 0;
         internal const int ERROR_NOT_SUPPORTED = 50;
 
