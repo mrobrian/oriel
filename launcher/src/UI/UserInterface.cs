@@ -76,7 +76,7 @@ namespace Windower.UI
             {
                 application.Resources.MergedDictionaries.Add(new ResourceDictionary()
                 {
-                    Source = new Uri("/windower;component/res/Strings." + languageTag + ".xaml", UriKind.Relative)
+                    Source = new Uri("/oriel;component/res/Strings." + languageTag + ".xaml", UriKind.Relative)
                 });
             }
             catch (IOException) { }
@@ -87,7 +87,7 @@ namespace Windower.UI
                 {
                     application.Resources.MergedDictionaries.Add(new ResourceDictionary()
                     {
-                        Source = new Uri("/windower;component/res/Strings." + cultureTag + ".xaml", UriKind.Relative)
+                        Source = new Uri("/oriel;component/res/Strings." + cultureTag + ".xaml", UriKind.Relative)
                     });
                 }
                 catch (IOException) { }

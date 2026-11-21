@@ -34,11 +34,11 @@ SOFTWARE.
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/windower;component/res/Branding.xaml"/>
-                <ResourceDictionary Source="/windower;component/res/Strings.xaml"/>
+                <ResourceDictionary Source="/oriel;component/res/Branding.xaml"/>
+                <ResourceDictionary Source="/oriel;component/res/Strings.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <Image x:Key="Icon" Source="/windower;component/res/Icon.ico"/>
+            <Image x:Key="Icon" Source="/oriel;component/res/Icon.ico"/>
 
             <SolidColorBrush x:Key="WindowerBranding" Color="{DynamicResource WindowerBrandingColor}"/>
             <SolidColorBrush x:Key="BaseLow" Color="#33000000"/>
