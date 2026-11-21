@@ -318,8 +318,45 @@ namespace Windower.Core
                 stream.Seek(dosheader.e_lfanew, SeekOrigin.Begin);
                 var ntheaders = await ReadAsync<NativeMethods.IMAGE_NT_HEADERS>(stream);
 
-                return new IntPtr(ntheaders.OptionalHeader.ImageBase + ntheaders.OptionalHeader.AddressOfEntryPoint);
+                // Oriel: use the base address the image was actually loaded at. With ASLR
+                // (pol.exe 1.18.13 sets DYNAMIC_BASE) it is not the header's preferred ImageBase.
+                var imageBase = GetRemoteImageBase();
+                return new IntPtr(imageBase + ntheaders.OptionalHeader.AddressOfEntryPoint);
             }
+        }
+
+        /// <summary>
+        /// Gets the address the target (32-bit) process's main image was loaded at, read from its PEB.
+        /// </summary>
+        /// <exception cref="System.ComponentModel.Win32Exception">The PEB could not be located or read.</exception>
+        private long GetRemoteImageBase()
+        {
+            IntPtr peb32;
+            if (Environment.Is64BitProcess)
+            {
+                var status = NativeMethods.NtQueryInformationProcess(processHandle, NativeMethods.ProcessWow64Information,
+                    out peb32, IntPtr.Size, IntPtr.Zero);
+                if (status != 0 || peb32 == IntPtr.Zero)
+                {
+                    throw new Win32Exception(NativeMethods.RtlNtStatusToDosError(status));
+                }
+            }
+            else
+            {
+                var status = NativeMethods.NtQueryInformationProcess(processHandle, NativeMethods.ProcessBasicInformation,
+                    out NativeMethods.PROCESS_BASIC_INFORMATION info, Marshal.SizeOf(typeof(NativeMethods.PROCESS_BASIC_INFORMATION)),
+                    IntPtr.Zero);
+                if (status != 0 || info.PebBaseAddress == IntPtr.Zero)
+                {
+                    throw new Win32Exception(NativeMethods.RtlNtStatusToDosError(status));
+                }
+
+                peb32 = info.PebBaseAddress;
+            }
+
+            // 32-bit PEB: ImageBaseAddress is at offset 0x08.
+            var bytes = Read(processHandle, new IntPtr(peb32.ToInt64() + 0x08), 4);
+            return BitConverter.ToUInt32(bytes, 0);
         }
 
         /// <summary>

@@ -301,6 +301,41 @@ namespace Windower.Core
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool Wow64GetThreadContext(SafeWaitHandle hThread, IntPtr lpContext);
 
+        /// <summary>ProcessBasicInformation: returns a <see cref="PROCESS_BASIC_INFORMATION"/>.</summary>
+        internal const int ProcessBasicInformation = 0;
+
+        /// <summary>ProcessWow64Information: returns the 32-bit PEB address of a WOW64 process.</summary>
+        internal const int ProcessWow64Information = 26;
+
+        /// <summary>
+        /// Retrieves information about the specified process. Returns an NTSTATUS (0 on success).
+        /// </summary>
+        [DllImport("ntdll.dll", CallingConvention = CallingConvention.Winapi)]
+        internal static extern int NtQueryInformationProcess(SafeWaitHandle processHandle, int processInformationClass,
+            out PROCESS_BASIC_INFORMATION processInformation, int processInformationLength, IntPtr returnLength);
+
+        /// <summary>
+        /// Retrieves pointer-sized information about the specified process. Returns an NTSTATUS (0 on success).
+        /// </summary>
+        [DllImport("ntdll.dll", CallingConvention = CallingConvention.Winapi)]
+        internal static extern int NtQueryInformationProcess(SafeWaitHandle processHandle, int processInformationClass,
+            out IntPtr processInformation, int processInformationLength, IntPtr returnLength);
+
+        /// <summary>Converts an NTSTATUS code to the equivalent Win32 error code.</summary>
+        [DllImport("ntdll.dll", CallingConvention = CallingConvention.Winapi)]
+        internal static extern int RtlNtStatusToDosError(int status);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct PROCESS_BASIC_INFORMATION
+        {
+            public IntPtr ExitStatus;
+            public IntPtr PebBaseAddress;
+            public IntPtr AffinityMask;
+            public IntPtr BasePriority;
+            public IntPtr UniqueProcessId;
+            public IntPtr InheritedFromUniqueProcessId;
+        }
+
         [DllImport("psapi.dll", CallingConvention = CallingConvention.Winapi, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool EnumProcessModulesEx(SafeWaitHandle hProcess, [Out] IntPtr[] lphModule, uint cb,
