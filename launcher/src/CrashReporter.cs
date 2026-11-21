@@ -46,7 +46,7 @@ namespace Windower
                 return (null, null);
             }
 
-            var path = Path.Combine(Path.GetTempPath(), "Windower");
+            var path = Path.Combine(Path.GetTempPath(), "Oriel");
             Directory.CreateDirectory(path);
 
             FileStream stream = null;

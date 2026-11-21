@@ -115,7 +115,7 @@ std::filesystem::path windower::settings_path()
         if (SUCCEEDED(::SHGetKnownFolderPath(
                 FOLDERID_LocalAppData, KF_FLAG_CREATE, nullptr, &wstr)))
         {
-            result = fs::path{wstr} / u8"Windower";
+            result = fs::path{wstr} / u8"Oriel";
         }
     }
 
@@ -135,7 +135,7 @@ std::filesystem::path windower::user_path()
         if (SUCCEEDED(::SHGetKnownFolderPath(
                 FOLDERID_SavedGames, KF_FLAG_CREATE, nullptr, &wstr)))
         {
-            result = fs::path{wstr} / u8"Windower";
+            result = fs::path{wstr} / u8"Oriel";
         }
     }
 
@@ -150,7 +150,7 @@ std::filesystem::path windower::temp_path()
 
     if (result.empty())
     {
-        result = fs::temp_directory_path() / u8"Windower";
+        result = fs::temp_directory_path() / u8"Oriel";
     }
 
     return result;
@@ -235,7 +235,7 @@ std::string_view windower::to_string_view(std::u8string_view value) noexcept
 {
     static_assert(char_is_ascii());
 
-    [[gsl::suppress(type .1)]]
+    WINDOWER_SUPPRESS(type.1)
     {
         return {reinterpret_cast<char const*>(value.data()), value.size()};
     }
@@ -245,7 +245,7 @@ windower::zstring_view windower::to_zstring_view(u8zstring_view value) noexcept
 {
     static_assert(char_is_ascii());
 
-    [[gsl::suppress(type .1)]]
+    WINDOWER_SUPPRESS(type.1)
     {
         return {reinterpret_cast<char const*>(value.data()), value.size()};
     }

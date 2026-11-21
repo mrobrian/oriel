@@ -210,13 +210,13 @@ void set_window_properties(::HWND hwnd)
                 {
                     ::PROPVARIANT value{};
                     if (SUCCEEDED(::InitPropVariantFromString(
-                            L"Windower.Windower", &value)))
+                            L"Oriel.Oriel", &value)))
                     {
                         properties->SetValue(PKEY_AppUserModel_ID, value);
                         ::PropVariantClear(&value);
                     }
                     auto executable =
-                        windower::windower_path() / u8"windower.exe";
+                        windower::windower_path() / u8"oriel.exe";
                     if (SUCCEEDED(::InitPropVariantFromString(
                             executable.c_str(), &value)))
                     {
@@ -225,7 +225,7 @@ void set_window_properties(::HWND hwnd)
                         ::PropVariantClear(&value);
                     }
                     if (SUCCEEDED(
-                            ::InitPropVariantFromString(L"Windower", &value)))
+                            ::InitPropVariantFromString(L"Oriel", &value)))
                     {
                         properties->SetValue(
                             PKEY_AppUserModel_RelaunchDisplayNameResource,

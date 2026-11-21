@@ -30,6 +30,8 @@ SOFTWARE.
     <Rule Id="C26459" Action="None" />
     <Rule Id="C26473" Action="None" />
     <Rule Id="C26474" Action="None" />
+    <!-- Oriel: VS 2026's analyzer reports false positives after every co_await. -->
+    <Rule Id="C26481" Action="None" />
     <Rule Id="C26486" Action="None" />
     <Rule Id="C26487" Action="None" />
     <Rule Id="C26489" Action="None" />

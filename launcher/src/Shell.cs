@@ -30,7 +30,7 @@ namespace Windower
 
     public static class Shell
     {
-        private const string appUserModelId = "Windower.Windower";
+        private const string appUserModelId = "Oriel.Oriel";
 
         public static void Initialize()
         {

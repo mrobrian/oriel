@@ -188,7 +188,7 @@ SetPriorityClass(::HANDLE hProcess, ::DWORD dwPriorityClass) noexcept
             STARTUPINFO startup{};
             startup.cb = sizeof startup;
 
-            auto path = windower::windower_path() / u8"windower.exe";
+            auto path = windower::windower_path() / u8"oriel.exe";
             auto u8_args =
                 u8R"(")" + path.u8string() + u8R"(" )" +
                 windower::core::instance().settings.command_line_args;

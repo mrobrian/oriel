@@ -60,11 +60,24 @@ namespace Windower.Core
             return Update(null);
         }
 
+#if !DEBUG
+        // Oriel: self-updating is disabled. The update URLs above serve official
+        // Windower builds, which would overwrite Oriel's own launcher and core.
+        // Set to true only after updateUrl points at an Oriel release channel.
+        private static readonly bool SelfUpdateEnabled = false;
+#endif
+
         public static async Task Update(IProgress<ProgressDetail<UpdateStatus>> progress)
         {
 #if DEBUG
             await Task.FromResult(false);
 #else
+            if (!SelfUpdateEnabled)
+            {
+                await Task.FromResult(false);
+                return;
+            }
+
             progress?.Report(ProgressDetail.Create(0, 0, UpdateStatus.Checking));
             var info = await GetUpdateInfo();
 
@@ -85,7 +98,7 @@ namespace Windower.Core
             if (updateLauncher)
             {
                 progress?.Report(ProgressDetail.Create(downloaded, totalSize, UpdateStatus.DownloadingLauncher));
-                launcherTempPath = await DownloadToTemporaryFile(new Uri(updateUrl + "windower.exe"),
+                launcherTempPath = await DownloadToTemporaryFile(new Uri(updateUrl + "oriel.exe"),
                     progress == null ? null : new Progress<long>(p =>
                     {
                         progress?.Report(ProgressDetail.Create(downloaded + p, totalSize, UpdateStatus.DownloadingLauncher));
@@ -174,7 +187,7 @@ namespace Windower.Core
 
             DateTime lastUpdated = DateTime.MinValue;
             var timestamp = (string)document?.Root?.Attribute("timestamp");
-            if (timestamp == null)
+            if (timestamp != null)
             {
                 lastUpdated = DateTime.TryParseExact(timestamp, "O", CultureInfo.InvariantCulture,
                     DateTimeStyles.AdjustToUniversal, out var result) ? result : DateTime.MinValue;

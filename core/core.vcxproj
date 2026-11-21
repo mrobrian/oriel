@@ -522,6 +522,12 @@
         process.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardError = true;
+        // Oriel: ignore any system LuaJIT install's search paths; otherwise
+        // luajit.exe can load an incompatible jit/bcsave.lua.
+        foreach (var name in new[] { "LUA_PATH", "LUA_PATH_5_1", "LUA_CPATH", "LUA_CPATH_5_1", "LUA_INIT", "LUA_INIT_5_1" })
+        {
+        process.StartInfo.EnvironmentVariables.Remove(name);
+        }
 
         process.ErrorDataReceived += (sender, e) =&gt;
         {

@@ -29,10 +29,10 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyVersion("5.0.*")]
 
-[assembly: AssemblyTitle("Windower")]
-[assembly: AssemblyProduct("Windower")]
-[assembly: AssemblyCompany("Windower Dev Team")]
-[assembly: AssemblyCopyright("Copyright © 2016 Windower Dev Team")]
+[assembly: AssemblyTitle("Oriel")]
+[assembly: AssemblyProduct("Oriel")]
+[assembly: AssemblyCompany("Oriel")]
+[assembly: AssemblyCopyright("Copyright © 2016 Windower Dev Team; Oriel modifications © 2026 Oriel contributors")]
 
 [assembly: NeutralResourcesLanguage("en-US")]
 

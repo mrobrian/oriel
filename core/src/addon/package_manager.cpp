@@ -801,6 +801,7 @@ windower::package_manager::install_or_update(
                 {
                     auto message = u8"a problem occurred while installing \"" +
                                    it2->name + u8"\"";
+                    core::error(u8"package manager", message);
                     if (windower::core::instance().settings.verbose_logging)
                     {
                         for (auto const& r : results)

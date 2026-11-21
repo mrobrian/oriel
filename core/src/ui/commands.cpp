@@ -31,6 +31,7 @@
 
 #include <gsl/gsl>
 
+#include <algorithm>
 #include <cstdint>
 
 namespace windower::ui
@@ -77,11 +78,21 @@ void set_texture_wrap_command::execute(
 
 void set_texture_wrap_command::stitch(bool wrap) noexcept { m_wrap = wrap; }
 
+namespace
+{
+// An empty clip (from intersecting disjoint rectangles) has a negative width
+// or height; converting a negative float to uint32 is undefined behavior.
+std::uint32_t to_viewport_extent(float value) noexcept
+{
+    return gsl::narrow_cast<std::uint32_t>(std::max(value, 0.f));
+}
+}
+
 set_clip_command::set_clip_command(rectangle const& clip_rect) noexcept :
-    m_x{gsl::narrow_cast<std::uint32_t>(clip_rect.x0)},
-    m_y{gsl::narrow_cast<std::uint32_t>(clip_rect.y0)},
-    m_width{gsl::narrow_cast<std::uint32_t>(clip_rect.width())},
-    m_height{gsl::narrow_cast<std::uint32_t>(clip_rect.height())}
+    m_x{to_viewport_extent(clip_rect.x0)},
+    m_y{to_viewport_extent(clip_rect.y0)},
+    m_width{to_viewport_extent(clip_rect.width())},
+    m_height{to_viewport_extent(clip_rect.height())}
 {}
 
 void set_clip_command::execute(::IDirect3DDevice8* d3d_device) const noexcept
@@ -94,10 +105,10 @@ void set_clip_command::execute(::IDirect3DDevice8* d3d_device) const noexcept
 
 void set_clip_command::stitch(rectangle const& clip_rect) noexcept
 {
-    m_x      = gsl::narrow_cast<std::uint32_t>(clip_rect.x0);
-    m_y      = gsl::narrow_cast<std::uint32_t>(clip_rect.y0);
-    m_width  = gsl::narrow_cast<std::uint32_t>(clip_rect.width());
-    m_height = gsl::narrow_cast<std::uint32_t>(clip_rect.height());
+    m_x      = to_viewport_extent(clip_rect.x0);
+    m_y      = to_viewport_extent(clip_rect.y0);
+    m_width  = to_viewport_extent(clip_rect.width());
+    m_height = to_viewport_extent(clip_rect.height());
 }
 
 draw_line_strip_command::draw_line_strip_command(

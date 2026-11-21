@@ -224,7 +224,7 @@ void windower::crash_handler::initialize() { instance(); }
 windower::crash_handler& windower::crash_handler::instance()
 {
     static crash_handler instance{
-        std::filesystem::temp_directory_path() / u8"Windower"};
+        std::filesystem::temp_directory_path() / u8"Oriel"};
     return instance;
 }
 
@@ -323,7 +323,7 @@ void windower::crash_handler::crash(void* exception) const
 {
     ::write_dump(m_full_path, m_dump_type, exception);
 
-    auto reporter = windower_path() / u8"windower.exe";
+    auto reporter = windower_path() / u8"oriel.exe";
     auto args     = quote_argument(reporter.wstring()) + L" report-crash " +
                 m_full_path_quoted;
     if (auto ptr = static_cast<::EXCEPTION_POINTERS*>(exception))

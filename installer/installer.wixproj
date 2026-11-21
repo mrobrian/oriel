@@ -85,7 +85,7 @@
   <Target Name="BuildZips" BeforeTargets="Build" Outputs="$(OutDir)windower.zip">
     <ItemGroup>
       <ZipFiles Include="$(OutDir)core.dll" />
-      <ZipFiles Include="$(OutDir)windower.exe" />
+      <ZipFiles Include="$(OutDir)oriel.exe" />
       <ZipFiles Include="$(SolutionDir)LICENSE.md" />
     </ItemGroup>
     <Copy SourceFiles="@(ZipFiles)" DestinationFolder="$(IntermediateOutputPath)/windower" />
@@ -95,7 +95,7 @@
     </ItemGroup>
     <Copy SourceFiles="@(ZipFiles)" DestinationFolder="$(IntermediateOutputPath)/windower.portable" />
     <ZipDirectory SourceDirectory="$(IntermediateOutputPath)/windower.portable" DestinationFile="$(OutDir)windower.portable.zip" Overwrite="true" />
-    <WriteVersionInfo OutputPath="$(OutDir)version.xml" LauncherPath="$(OutDir)windower.exe" CorePath="$(OutDir)core.dll" />
+    <WriteVersionInfo OutputPath="$(OutDir)version.xml" LauncherPath="$(OutDir)oriel.exe" CorePath="$(OutDir)core.dll" />
   </Target>
   <Target Name="CleanZips" BeforeTargets="Clean">
     <Delete Files="$(OutDir)windower.zip;$(OutDir)windower.portable.zip" />

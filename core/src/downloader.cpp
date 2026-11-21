@@ -175,8 +175,8 @@ void add_header(
     auto count          = adjusted.count();
 
     auto const file_time = ::FILETIME{
-        .dwLowDateTime  = gsl::narrow_cast<::DWORD>(count & 0xFF),
-        .dwHighDateTime = gsl::narrow_cast<::DWORD>(count >> 32 & 0xFF),
+        .dwLowDateTime  = gsl::narrow_cast<::DWORD>(count & 0xFFFF'FFFF),
+        .dwHighDateTime = gsl::narrow_cast<::DWORD>(count >> 32 & 0xFFFF'FFFF),
     };
 
     add_header(request, header_name, file_time);
@@ -501,7 +501,7 @@ void windower::downloader::run()
         if (auto next_job = get_next_job())
         {
             std::u8string_view const u8user_agent =
-                u8"Windower/" WINDOWER_VERSION_STRING;
+                u8"Oriel/" WINDOWER_VERSION_STRING;
             std::wstring user_agent{u8user_agent.begin(), u8user_agent.end()};
             internet_handle session = ::WinHttpOpen(
                 user_agent.c_str(), WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,

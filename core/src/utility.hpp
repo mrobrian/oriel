@@ -56,6 +56,11 @@
 // clang-format off
 #    define WINDOWER_SUPPRESS(id) [[gsl::suppress(#id)]]
 // clang-format on
+#elif defined(_MSC_VER) && _MSC_VER >= 1950
+// Visual Studio 2026+ deprecates non-string arguments to gsl::suppress (C4875).
+// clang-format off
+#    define WINDOWER_SUPPRESS(id) [[gsl::suppress(#id)]]
+// clang-format on
 #elif defined(_MSC_VER)
 #    define WINDOWER_SUPPRESS(id) [[gsl::suppress(id)]]
 #endif

@@ -2,13 +2,13 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <?include res/branding.wxi ?>
 
-  <Product Id="*" Name="$(var.Name)" Version="5.0" Manufacturer="Windower Dev Team" Language="1033" UpgradeCode="$(var.Guid)">
+  <Product Id="*" Name="$(var.Name)" Version="5.0" Manufacturer="Oriel" Language="1033" UpgradeCode="$(var.Guid)">
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"/>
     <MediaTemplate EmbedCab="yes"/>
     <UIRef Id="WixUI_InstallDir"/>
-    <Icon Id="windower.exe" SourceFile="$(var.SolutionDir)build\bin\$(var.Configuration)\windower.exe"/>
-    <Property Id="ARPPRODUCTICON" Value="windower.exe"/>
-    <Property Id="ARPURLINFOABOUT" Value="http://windower.net"/>
+    <Icon Id="oriel.exe" SourceFile="$(var.SolutionDir)build\bin\$(var.Configuration)\oriel.exe"/>
+    <Property Id="ARPPRODUCTICON" Value="oriel.exe"/>
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/mrobrian/oriel"/>
     <Property Id="ARPNOREPAIR" Value="yes"/>
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
     <WixVariable Id="WixUIDialogBmp" Value="res\dialog.bmp"/>
@@ -17,7 +17,7 @@
     <Condition Message="This application is only supported on Windows 7 or higher.">
       <![CDATA[Installed OR (VersionNT >= 601)]]>
     </Condition>
-    <Feature Id="Feature" Title="Windower" Level="1">
+    <Feature Id="Feature" Title="Oriel" Level="1">
       <ComponentGroupRef Id="Components"/>
     </Feature>
   </Product>
@@ -33,7 +33,7 @@
   <Fragment>
     <ComponentGroup Id="Components" Directory="INSTALLFOLDER">
       <Component>
-        <File Source="$(var.SolutionDir)build\bin\$(var.Configuration)\windower.exe"/>
+        <File Source="$(var.SolutionDir)build\bin\$(var.Configuration)\oriel.exe"/>
       </Component>
       <Component>
         <File Source="$(var.SolutionDir)build\bin\$(var.Configuration)\core.dll"/>

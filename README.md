@@ -1,54 +1,52 @@
-# [Fenestra][github-project]
+# Oriel
 
-[![Discord Server][discord-badge]][discord-url]
-[![Continuous Integration][build-status-badge]][build-status-url]
-[![GitHub Contributors][contributors-badge]][contributors-url]
-[![GitHub Stars][stars-badge]][stars-url]
-[![GitHub Forks][forks-badge]][forks-url]
+Oriel is an addon platform for Final Fantasy XI, forked from
+[Fenestra][fenestra], the open-source core of Windower 5.
 
-![Fenestra][banner]
+It focuses on the in-game UI: windows that clip their contents, smooth
+scrolling, masked images, and correct layering of text and graphics.
 
-Fenestra is the open-source development version of [Windower][windower-homepage].
+> **Status:** early development. Oriel is not ready for general use and has no
+> releases yet.
 
-All new features and bug fixes for the official builds of Windower are worked on here.
+## Relationship to Fenestra and Windower
 
-<!--
+Oriel builds on Fenestra's code, which the Windower Dev Team publishes under
+the MIT license. Oriel is an independent project. It is not affiliated with or
+endorsed by the Windower Dev Team, and it does not use the Windower name or
+artwork.
+
+Upstream changes from Fenestra are merged in periodically.
+
+## Building
+
+Requirements:
+
+- Visual Studio 2026 with the **Desktop development with C++** and
+  **.NET desktop development** workloads
+- Git
+
+```
+git clone --recurse-submodules https://github.com/mrobrian/oriel.git
+cd oriel
+msbuild fenestra.sln -t:restore;build -p:configuration=debug
+```
+
+You can also open `fenestra.sln` in Visual Studio and build from there. The
+output is written to `build\bin\debug`.
+
 ## Contributing
 
-All contributions are welcome. Learn more about contributing in
-the [CONTRIBUTING][contributing] file.
-
-Not sure what to contribute? Check out the [GitHub "contribute" page][contribute]
--->
-
-## Contact
-
-You can chat with the Windower dev team and users on our community [Discord server][discord-url].
+Changes to `main` go through pull requests, which the maintainer reviews
+before merging.
 
 ## License
 
-This project uses the [MIT][license] license.
+Oriel is released under the [MIT license][license], the same license as
+Fenestra. The original copyright notice for the Windower Dev Team is kept in
+the license file and in the application, as the license requires.
 
-<!-- References -->
+FINAL FANTASY is a registered trademark of Square Enix Holdings Co., Ltd.
 
-[github-project]: https://github.com/Windower/Fenestra
-[windower-homepage]: https://www.windower.net
-
-[banner]: https://github.com/Windower/Fenestra/raw/media/banner.png
-
-[contributing]: ./CONTRIBUTING.md
-[contribute]: https://github.com/Windower/Fenestra/contribute
-
+[fenestra]: https://github.com/Windower/Fenestra
 [license]: ./LICENSE.md
-
-[discord-url]: https://discord.gg/2wCMexS
-[build-status-url]: https://github.com/Windower/Fenestra/actions/workflows/ci.yml
-[contributors-url]: https://github.com/Windower/Fenestra/graphs/contributors
-[stars-url]: https://github.com/Windower/Fenestra/stargazers
-[forks-url]: https://github.com/Windower/Fenestra/network/members
-
-[discord-badge]: https://img.shields.io/discord/338590234235371531.svg?logo=discord&logoColor=white&colorB=7289da
-[build-status-badge]: https://github.com/Windower/Fenestra/actions/workflows/ci.yml/badge.svg?branch=main
-[contributors-badge]: https://img.shields.io/github/contributors/Windower/Fenestra
-[stars-badge]: https://img.shields.io/github/stars/Windower/Fenestra
-[forks-badge]: https://img.shields.io/github/forks/Windower/Fenestra

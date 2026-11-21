@@ -114,6 +114,9 @@
         process.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
+        // Oriel: msvcbuild.bat runs "minilua" from the current directory to
+        // detect x86 vs x64; this variable would make that lookup fail.
+        process.StartInfo.EnvironmentVariables.Remove("NoDefaultCurrentDirectoryInExePath");
 
         process.Start();
         while (!process.StandardOutput.EndOfStream)

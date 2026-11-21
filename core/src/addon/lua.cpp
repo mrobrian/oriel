@@ -506,7 +506,7 @@ void windower::lua::push(
     set_metatable(s, -2);
     try
     {
-        [[gsl::suppress(r .11)]] new (ptr) std::function<int(state)>{value};
+        WINDOWER_SUPPRESS(r.11) new (ptr) std::function<int(state)>{value};
     }
     catch (...)
     {

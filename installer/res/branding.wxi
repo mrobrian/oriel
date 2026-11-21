@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Include>
-  <?define Name="Fenestra"?>
-  <?define Guid="3A2D4C42-3F4E-458F-A799-79A56072F716"?>
-  <?define InstallDir="Fenestra"?>
+  <?define Name="Oriel"?>
+  <?define Guid="7999E22E-E963-42EB-93E2-EA944030845A"?>
+  <?define InstallDir="Oriel"?>
 </Include>

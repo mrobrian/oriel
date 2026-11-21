@@ -84,7 +84,7 @@ void windower::debug_console::run()
             ::GetSystemMenu(::GetConsoleWindow(), false), SC_CLOSE,
             MF_BYCOMMAND);
         ::SetConsoleTitleW(
-            reinterpret_cast<::LPCWSTR>(u"Windower Debug Console"));
+            reinterpret_cast<::LPCWSTR>(u"Oriel Debug Console"));
     }
 
     ::FILE* file;

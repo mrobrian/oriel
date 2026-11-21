@@ -39,7 +39,7 @@ SOFTWARE.
     <sys:String x:Key="Strings.UpdateStatusDownloadingLauncher">Downloading launcher</sys:String>
     <sys:String x:Key="Strings.UpdateStatusDownloadingCore">Downloading core</sys:String>
     <sys:String x:Key="Strings.UpdateStatusInstalling">Installing updates</sys:String>
-    <sys:String x:Key="Strings.UpdateStatusRestarting">Windower is restarting</sys:String>
+    <sys:String x:Key="Strings.UpdateStatusRestarting">Oriel is restarting</sys:String>
     <sys:String x:Key="Strings.LaunchStatusElevating">Starting PlayOnline Viewer as administrator</sys:String>
     <sys:String x:Key="Strings.LaunchStatusInstalling">Waiting for Steam to install Final Fantasy XI</sys:String>
     <sys:String x:Key="Strings.RegionEU">Europe</sys:String>
@@ -76,7 +76,8 @@ SOFTWARE.
     <sys:String x:Key="Strings.Width">Width</sys:String>
     <sys:String x:Key="Strings.Docs">Documentation</sys:String>
     <sys:String x:Key="Strings.ModeWindow">Window</sys:String>
-    <sys:String x:Key="Strings.WindowerWebsite">Windower website</sys:String>
+    <sys:String x:Key="Strings.WindowerWebsite">Oriel on GitHub</sys:String>
+    <sys:String x:Key="Strings.BasedOnFenestra">Based on Fenestra by the Windower Dev Team</sys:String>
     <sys:String x:Key="Strings.WindowType">Mode</sys:String>
     <sys:String x:Key="Strings.Yes">Yes</sys:String>
     <sys:String x:Key="Strings.AdjustUIScale">Adjust user interface scale</sys:String>
@@ -130,16 +131,16 @@ SOFTWARE.
     <sys:String x:Key="Strings.FixAccessControlDescription">PlayOnline Viewer currently requires administrator access to run. Would you like us to make adjustments to PlayOnline Viewer so that it can run without administrator access?</sys:String>
     <sys:String x:Key="Strings.DoNotAskAgain">Don't ask me again</sys:String>
     <sys:String x:Key="Strings.CreateProfileLink">Pin to desktop</sys:String>
-    <sys:String x:Key="Strings.ProfileLinkFormat">Windower ({0})</sys:String>
+    <sys:String x:Key="Strings.ProfileLinkFormat">Oriel ({0})</sys:String>
     <sys:String x:Key="Strings.CopyProfile">Create copy</sys:String>
     <sys:String x:Key="Strings.ProfileCopyNameFormat">{0} (Copy {1})</sys:String>
-    <sys:String x:Key="Strings.ClientNotFound">Windower could not locate Final Fantasy XI.</sys:String>
-    <sys:String x:Key="Strings.ClientNotFoundDescription">Windower requires Final Fantasy XI to be installed in order to function.</sys:String>
+    <sys:String x:Key="Strings.ClientNotFound">Oriel could not locate Final Fantasy XI.</sys:String>
+    <sys:String x:Key="Strings.ClientNotFoundDescription">Oriel requires Final Fantasy XI to be installed in order to function.</sys:String>
     <sys:String x:Key="Strings.DirectPlayPrompt">DirectPlay is not installed</sys:String>
     <sys:String x:Key="Strings.DirectPlayDescription">Final Fantasy XI requires DirectPlay to run. DirectPlay is an optional component of DirectX 8.1, and is not installed by default starting with Windows 8. Would you like us to install DirectPlay?</sys:String>
     <sys:String x:Key="Strings.Install">Install</sys:String>
     <sys:String x:Key="Strings.Exit">Exit</sys:String>
-    <sys:String x:Key="Strings.Crashed">Windower encountered a problem and crashed.</sys:String>
+    <sys:String x:Key="Strings.Crashed">Oriel encountered a problem and crashed.</sys:String>
     <sys:String x:Key="Strings.CrashReporterPreparing">Collecting details about the crash</sys:String>
     <sys:String x:Key="Strings.CrashReporterCheckingReport">Checking if this issue has been reported already</sys:String>
     <sys:String x:Key="Strings.CrashReporterSigningIn">Signing in</sys:String>
@@ -153,20 +154,20 @@ SOFTWARE.
     <sys:String x:Key="Strings.CrashReporterFetchingGistDetails">Getting gist details</sys:String>
     <sys:String x:Key="Strings.CrashReporterCreatingIssue">Creating a new issue for this crash report</sys:String>
     <sys:String x:Key="Strings.CrashReporterCreatingComment">Leaving a comment on the issue for this crash report</sys:String>
-    <sys:String x:Key="Strings.CrashReporterSubmitPrompt">Submit a crash report to the Windower dev team?</sys:String>
-    <sys:String x:Key="Strings.CrashReporterSubmitDisclaimerEncrypted" xml:space="preserve">A crash report has been generated. The Windower dev team can use this report to help fix the problem. This crash report includes information about the state of Windower when the problem occurred, and your operating system. The data collected will only be used to fix the problem, and will be encrypted before it is uploaded, so that it cannot be read by anyone else.&#xD;&#xA;&#xD;&#xA;You will need a GitHub account to submit this crash report. The report will be uploaded as a gist to your GitHub account, and attached to an issue.</sys:String>
-    <sys:String x:Key="Strings.CrashReporterSubmitDisclaimer" xml:space="preserve">A crash report has been generated. The Windower dev team can use this report to help fix the problem. This crash report includes information about the state of Windower when the problem occurred, and your operating system. The data collected will only be used to fix the problem.&#xD;&#xA;&#xD;&#xA;You will need a GitHub account to submit this crash report. The report will be uploaded as a gist to your GitHub account, and attached to an issue.</sys:String>
+    <sys:String x:Key="Strings.CrashReporterSubmitPrompt">Submit a crash report to the Oriel developers?</sys:String>
+    <sys:String x:Key="Strings.CrashReporterSubmitDisclaimerEncrypted" xml:space="preserve">A crash report has been generated. The Oriel developers can use this report to help fix the problem. This crash report includes information about the state of Oriel when the problem occurred, and your operating system. The data collected will only be used to fix the problem, and will be encrypted before it is uploaded, so that it cannot be read by anyone else.&#xD;&#xA;&#xD;&#xA;You will need a GitHub account to submit this crash report. The report will be uploaded as a gist to your GitHub account, and attached to an issue.</sys:String>
+    <sys:String x:Key="Strings.CrashReporterSubmitDisclaimer" xml:space="preserve">A crash report has been generated. The Oriel developers can use this report to help fix the problem. This crash report includes information about the state of Oriel when the problem occurred, and your operating system. The data collected will only be used to fix the problem.&#xD;&#xA;&#xD;&#xA;You will need a GitHub account to submit this crash report. The report will be uploaded as a gist to your GitHub account, and attached to an issue.</sys:String>
     <sys:String x:Key="Strings.CrashReporterViewReport">View the contents of the crash report</sys:String>
     <sys:String x:Key="Strings.CrashReporterViewLocalReport">View the local crash report files</sys:String>
     <sys:String x:Key="Strings.CrashReporterViewRemoteReport">View the crash report</sys:String>
     <sys:String x:Key="Strings.CrashReporterReportSubmitted">Crash report submitted</sys:String>
-    <sys:String x:Key="Strings.CrashReporterReportSubmittedDetails">The crash report has been successfully submitted to the Windower dev team.</sys:String>
+    <sys:String x:Key="Strings.CrashReporterReportSubmittedDetails">The crash report has been successfully submitted to the Oriel developers.</sys:String>
     <sys:String x:Key="Strings.CrashReporterReportExists">Crash already reported</sys:String>
-    <sys:String x:Key="Strings.CrashReporterReportExistsDetails">This crash has already been reported to the Windower dev team.</sys:String>
+    <sys:String x:Key="Strings.CrashReporterReportExistsDetails">This crash has already been reported to the Oriel developers.</sys:String>
     <sys:String x:Key="Strings.CrashReporterReportNotSubmitted">Crash report saved</sys:String>
-    <sys:String x:Key="Strings.CrashReporterReportNotSubmittedDetails">The crash report files have been saved to your hard drive and have not been submitted to the Windower dev team.</sys:String>
+    <sys:String x:Key="Strings.CrashReporterReportNotSubmittedDetails">The crash report files have been saved to your hard drive and have not been submitted to the Oriel developers.</sys:String>
     <sys:String x:Key="Strings.CrashReporterReportingDisabled">Crash reporting disabled</sys:String>
-    <sys:String x:Key="Strings.CrashReporterReportingDisabledDetails">Crash reporting has been disabled for this version of Windower. The crash report files have been saved to your hard drive.</sys:String>
+    <sys:String x:Key="Strings.CrashReporterReportingDisabledDetails">Crash reporting has been disabled for this version of Oriel. The crash report files have been saved to your hard drive.</sys:String>
     <sys:String x:Key="Strings.CrashReporterReportingFailed">Failed to report crash</sys:String>
     <sys:String x:Key="Strings.CrashReporterReportingFailedDetails">A problem occurred while submitting the crash report. The crash report files have been saved to your hard drive.</sys:String>
     <sys:String x:Key="Strings.CrashReporterDeleteFiles">Delete crash report files</sys:String>
