@@ -35,6 +35,7 @@ namespace Windower.Core
         private Maybe<string> executable;
         private Maybe<string> executableArgs;
         private Maybe<bool> runAsAdmin;
+        private Maybe<bool> largeAddressAware;
         private Maybe<WindowType> windowType;
         private Maybe<string> display;
         private Maybe<Dimension?> resolution;
@@ -102,6 +103,12 @@ namespace Windower.Core
         {
             get => runAsAdmin.Default(false);
             set => runAsAdmin = value;
+        }
+
+        public bool LargeAddressAware
+        {
+            get => largeAddressAware.Default(false);
+            set => largeAddressAware = value;
         }
 
         public WindowType WindowType
@@ -259,8 +266,8 @@ namespace Windower.Core
 
             return baseValue.With(name, region, useSteam, executable, executableArgs, runAsAdmin, windowType, display, resolution, position,
                 samplesPerPixel, uiScale, hardwareMouse, maxSounds, playSoundWhenUnfocused, mipmapping, bumpMapping, mapCompression,
-                textureCompression, environmentAnimation, fontType, gamma, driverStability, playIntro, debug, developerMode, userPath, userPath,
-                tempPath, accessControlPrompt);
+                textureCompression, environmentAnimation, fontType, gamma, driverStability, playIntro, debug, developerMode, settingsPath, userPath,
+                tempPath, accessControlPrompt, largeAddressAware);
         }
     }
 }

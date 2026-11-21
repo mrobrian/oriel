@@ -161,6 +161,10 @@ namespace Windower.Core
             {
                 yield return new XElement("run-as-admin", p.RunAsAdmin);
             }
+            if (p.LargeAddressAware)
+            {
+                yield return new XElement("large-address-aware", p.LargeAddressAware);
+            }
             yield return new XElement("window-type", ToLowerString(p.WindowType));
             yield return new XElement("display", p.Display);
             yield return new XElement("resolution", Serialize(p.Resolution));
@@ -218,6 +222,7 @@ namespace Windower.Core
                 Executable = ConvertString(e.Element("executable")),
                 ExecutableArgs = ConvertString(e.Element("executable-args")),
                 RunAsAdmin = Convert(e.Element("run-as-admin"), false),
+                LargeAddressAware = Convert(e.Element("large-address-aware"), false),
                 WindowType = Convert(e.Element("window-type"), WindowType.Borderless),
                 Display = ConvertString(e.Element("display")),
                 Resolution = DeserializeDimension(e.Element("resolution")),

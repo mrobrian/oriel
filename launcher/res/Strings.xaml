@@ -113,6 +113,8 @@ SOFTWARE.
     <sys:String x:Key="Strings.SelectTempPath">Select temporary data path</sys:String>
     <sys:String x:Key="Strings.Browse">Browse</sys:String>
     <sys:String x:Key="Strings.DriverStability">Improve driver stability</sys:String>
+    <sys:String x:Key="Strings.LargeAddressAware">Large address aware (use up to 4 GB of memory)</sys:String>
+    <sys:String x:Key="Strings.LargeAddressAwareToolTip">Before each launch, marks pol.exe (or this profile's custom executable) as large address aware so the game can use up to 4 GB of memory instead of 2 GB. Useful for HD texture mods. Turning this off does not undo it.</sys:String>
     <sys:String x:Key="Strings.FontType">Font</sys:String>
     <sys:String x:Key="Strings.FontTypeCompressed">Compressed</sys:String>
     <sys:String x:Key="Strings.FontTypeHighQuality">High Quality</sys:String>

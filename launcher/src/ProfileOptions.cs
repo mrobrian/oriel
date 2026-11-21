@@ -77,6 +77,13 @@ namespace Windower
             set => builder.RunAsAdmin = value;
         }
 
+        [Option("large-address-aware")]
+        public bool LargeAddressAware
+        {
+            get => builder.LargeAddressAware;
+            set => builder.LargeAddressAware = value;
+        }
+
         [Option("display")]
         public string Display
         {

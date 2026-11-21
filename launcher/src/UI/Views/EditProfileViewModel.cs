@@ -387,6 +387,12 @@ namespace Windower.UI.Views
             set => Set(ref profile, profile.With(PlayIntro: value));
         }
 
+        public bool LargeAddressAware
+        {
+            get => profile.LargeAddressAware;
+            set => Set(ref profile, profile.With(LargeAddressAware: value));
+        }
+
         public bool Debug
         {
             get => profile.Debug;

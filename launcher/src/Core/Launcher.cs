@@ -129,6 +129,8 @@ namespace Windower.Core
             profile = Resolve(profile);
             if (CheckPermissions(profile))
             {
+                ApplyLargeAddressAware(profile);
+
                 Process process = null;
                 try
                 {
@@ -190,6 +192,46 @@ namespace Windower.Core
             }
 
             progress?.Report(ProgressDetail.Create(1, 1, LaunchStatus.Complete));
+        }
+
+        /// <summary>
+        /// Oriel: if the profile asks for it, marks the executable the profile launches (pol.exe, or the
+        /// profile's custom executable) as large address aware. Runs after the permission check, so the
+        /// launcher is already elevated if the install directories need it. Leaves the file unchanged
+        /// when the option is off, since pol.exe may be shared with other launchers.
+        /// </summary>
+        private static void ApplyLargeAddressAware(Profile profile)
+        {
+            if (!profile.LargeAddressAware)
+            {
+                return;
+            }
+
+            var path = profile.Executable != null
+                ? Path.GetFullPath(profile.Executable)
+                : GetPaths(profile).FirstOrDefault();
+            if (path == null || !File.Exists(path))
+            {
+                return;
+            }
+
+            try
+            {
+                LargeAddressAware.Enable(path);
+            }
+            catch (IOException e)
+            {
+                // The file is in use (for example, another client is already running from it).
+                System.Diagnostics.Trace.WriteLine("Large address aware: could not update " + path + ": " + e.Message);
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                System.Diagnostics.Trace.WriteLine("Large address aware: could not update " + path + ": " + e.Message);
+            }
+            catch (InvalidDataException e)
+            {
+                System.Diagnostics.Trace.WriteLine("Large address aware: unsupported file " + path + ": " + e.Message);
+            }
         }
 
         public static bool IsAdministrator()

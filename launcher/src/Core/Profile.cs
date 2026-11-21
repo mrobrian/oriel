@@ -51,7 +51,7 @@ namespace Windower.Core
             bool hardwareMouse, int maxSounds, bool playSoundWhenUnfocused, int mipmapping, bool bumpMapping, bool mapCompression,
             TextureCompression textureCompression, EnvironmentAnimation environmentAnimation, FontType fontType, float? gamma,
             bool driverStability, bool playIntro, bool debug, bool developerMode, string settingsPath, string userPath,
-            string tempPath, bool accessControlPrompt)
+            string tempPath, bool accessControlPrompt, bool largeAddressAware = false)
         {
             this.name = name?.Trim() ?? throw new ArgumentNullException(nameof(name));
             this.samplesPerPixel = samplesPerPixel;
@@ -68,6 +68,7 @@ namespace Windower.Core
             Executable = executable;
             ExecutableArgs = executableArgs;
             RunAsAdmin = runAsAdmin;
+            LargeAddressAware = largeAddressAware;
             WindowType = windowType;
             Display = display;
             Resolution = resolution;
@@ -97,6 +98,11 @@ namespace Windower.Core
         public string ExecutableArgs { get; }
 
         public bool RunAsAdmin { get; }
+
+        /// <summary>
+        /// Gets whether the launched executable should be marked large address aware (up to 4 GB of memory) before launch.
+        /// </summary>
+        public bool LargeAddressAware { get; }
 
         public WindowType WindowType { get; }
 
@@ -180,7 +186,8 @@ namespace Windower.Core
             Maybe<string> SettingsPath = new Maybe<string>(),
             Maybe<string> UserPath = new Maybe<string>(),
             Maybe<string> TempPath = new Maybe<string>(),
-            Maybe<bool> AccessControlPrompt = new Maybe<bool>())
+            Maybe<bool> AccessControlPrompt = new Maybe<bool>(),
+            Maybe<bool> LargeAddressAware = new Maybe<bool>())
         {
             if (Name != this.Name || Region != this.Region || UseSteam != this.UseSteam || Executable != this.Executable ||
                 ExecutableArgs != this.ExecutableArgs || RunAsAdmin != this.RunAsAdmin || WindowType != this.WindowType ||
@@ -192,7 +199,7 @@ namespace Windower.Core
                 FontType != this.FontType || Gamma != this.Gamma || DriverStability != this.DriverStability ||
                 PlayIntro != this.PlayIntro || Debug != this.Debug || DeveloperMode != this.DeveloperMode ||
                 SettingsPath != this.SettingsPath || UserPath != this.UserPath || TempPath != this.TempPath ||
-                AccessControlPrompt != this.AccessControlPrompt)
+                AccessControlPrompt != this.AccessControlPrompt || LargeAddressAware != this.LargeAddressAware)
             {
                 return new Profile(
                     Name.Default(this.Name),
@@ -220,11 +227,12 @@ namespace Windower.Core
                     DriverStability.Default(this.DriverStability),
                     PlayIntro.Default(this.PlayIntro),
                     Debug.Default(this.Debug),
-                    DeveloperMode.Default(this.Debug),
+                    DeveloperMode.Default(this.DeveloperMode),
                     SettingsPath.Default(this.SettingsPath),
                     UserPath.Default(this.UserPath),
                     TempPath.Default(this.TempPath),
-                    AccessControlPrompt.Default(this.AccessControlPrompt));
+                    AccessControlPrompt.Default(this.AccessControlPrompt),
+                    LargeAddressAware.Default(this.LargeAddressAware));
             }
 
             return this;
@@ -276,6 +284,7 @@ namespace Windower.Core
                 AddOption(builder, p => p.Executable, "executable");
                 AddOption(builder, p => p.ExecutableArgs, "executable-args");
                 AddOption(builder, p => p.RunAsAdmin, "admin");
+                AddOption(builder, p => p.LargeAddressAware, "large-address-aware");
                 AddOption(builder, p => p.WindowType, "mode");
                 AddOption(builder, p => p.Display, "display");
                 AddOption(builder, p => p.Resolution, "res", v => v?.Width + "x" + v?.Height);

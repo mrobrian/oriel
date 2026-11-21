@@ -75,6 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="src\Core\LargeAddressAware.cs" />
     <Compile Include="src\Core\Updater.cs" />
     <Compile Include="src\Core\UpdateStatus.cs" />
     <Compile Include="src\Core\ExtensionMethods.cs" />
