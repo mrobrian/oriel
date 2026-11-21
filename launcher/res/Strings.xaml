@@ -65,7 +65,6 @@ SOFTWARE.
     <sys:String x:Key="Strings.ProfileNameEmptyError">The profile name must not be empty.</sys:String>
     <sys:String x:Key="Strings.Region">Region</sys:String>
     <sys:String x:Key="Strings.RemoveProfile">Remove profile</sys:String>
-    <sys:String x:Key="Strings.ReportBug">Report a bug</sys:String>
     <sys:String x:Key="Strings.Resolution">Resolution</sys:String>
     <sys:String x:Key="Strings.ResolutionFormat">{0} × {1}</sys:String>
     <sys:String x:Key="Strings.SeeMore">See more</sys:String>
