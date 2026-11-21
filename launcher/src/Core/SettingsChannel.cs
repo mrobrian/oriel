@@ -104,12 +104,21 @@ namespace Windower.Core
         public Task FinishAsync(CancellationToken token) =>
             Task.Run(() =>
             {
+                // Oriel: give up instead of waiting forever if the core never reads its settings.
+                var waited = Stopwatch.StartNew();
                 do
                 {
                     token.ThrowIfCancellationRequested();
+                    if (waited.Elapsed > FinishTimeout)
+                    {
+                        throw new TimeoutException("The game did not finish loading its settings within " +
+                            FinishTimeout.TotalSeconds + " seconds.");
+                    }
                 }
                 while (!flag.WaitOne(100));
             }, token);
+
+        private static readonly TimeSpan FinishTimeout = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.

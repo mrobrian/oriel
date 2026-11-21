@@ -166,8 +166,9 @@ namespace Windower.Core
 
                     process = null;
                 }
-                catch (OperationCanceledException)
+                catch (Exception e) when (e is OperationCanceledException || e is TimeoutException)
                 {
+                    // Oriel: also stop the half-started game when a launch step times out.
                     if (process != null)
                     {
                         try

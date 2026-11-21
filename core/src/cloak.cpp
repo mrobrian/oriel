@@ -72,64 +72,6 @@ struct LDR_DATA_TABLE_ENTRY
 
 ::LDR_DATA_TABLE_ENTRY* cloaked_entry = nullptr;
 
-// Oriel: hold the loader lock while editing the PEB module lists. Without it, a
-// thread exiting at the same time (e.g. the launcher's LoadLibrary thread) can be
-// walking the lists in LdrShutdownThread when we unlink our entry; unlink() points
-// the entry at itself, and the loader then loops on it forever while holding the
-// loader lock, hanging the game and the launcher.
-class loader_lock
-{
-public:
-    loader_lock() noexcept
-    {
-        if (auto const lock = functions().lock)
-        {
-            lock(0, nullptr, &m_cookie);
-        }
-    }
-
-    ~loader_lock()
-    {
-        if (auto const unlock = functions().unlock; unlock && m_cookie)
-        {
-            unlock(0, m_cookie);
-        }
-    }
-
-    loader_lock(loader_lock const&)            = delete;
-    loader_lock(loader_lock&&)                 = delete;
-    loader_lock& operator=(loader_lock const&) = delete;
-    loader_lock& operator=(loader_lock&&)      = delete;
-
-private:
-    using lock_fn   = ::LONG(NTAPI*)(::ULONG, ::PULONG, ::PVOID*);
-    using unlock_fn = ::LONG(NTAPI*)(::ULONG, ::PVOID);
-
-    struct function_table
-    {
-        lock_fn lock     = nullptr;
-        unlock_fn unlock = nullptr;
-    };
-
-    static function_table const& functions() noexcept
-    {
-        static function_table const table = [] {
-            function_table result;
-            if (auto const ntdll = ::GetModuleHandleW(L"ntdll.dll"))
-            {
-                result.lock = std::bit_cast<lock_fn>(
-                    ::GetProcAddress(ntdll, "LdrLockLoaderLock"));
-                result.unlock = std::bit_cast<unlock_fn>(
-                    ::GetProcAddress(ntdll, "LdrUnlockLoaderLock"));
-            }
-            return result;
-        }();
-        return table;
-    }
-
-    ::PVOID m_cookie = nullptr;
-};
-
 void const* pin(void const* module)
 {
     ::HMODULE dummy = nullptr;
@@ -164,26 +106,16 @@ void unlink(::LIST_ENTRY& node) noexcept
 
 void windower::pin_and_cloak() noexcept
 {
+    // Oriel: pin only; cloaking is disabled. Unlinking our entry from the PEB
+    // module lists (and pointing it at itself) is not safe on current Windows:
+    // the loader still reaches the entry through its own structures during
+    // thread attach/detach and then loops forever on the self-link while
+    // holding the loader lock, hanging the game before it starts (seen on
+    // Windows 10.0.26340). Since cloaked_entry stays null, uncloak() and
+    // ~cloak_guard() do nothing.
     if (!cloaked_entry)
     {
-        auto module = pin(windower_module());
-        loader_lock const lock;
-        auto peb_ldr_data = get_peb_ldr_data();
-        auto node         = peb_ldr_data->InLoadOrderModuleList.Flink;
-        while (node != &peb_ldr_data->InLoadOrderModuleList)
-        {
-            auto entry = std::bit_cast<::LDR_DATA_TABLE_ENTRY*>(node);
-            if (entry->DllBase == module)
-            {
-                unlink(entry->InLoadOrderLinks);
-                unlink(entry->InMemoryOrderLinks);
-                unlink(entry->InInitializationOrderLinks);
-                unlink(entry->HashLinks);
-                cloaked_entry = entry;
-                return;
-            }
-            node = node->Flink;
-        }
+        pin(windower_module());
     }
 }
 
@@ -191,7 +123,6 @@ windower::cloak_guard windower::uncloak() noexcept
 {
     if (cloaked_entry)
     {
-        loader_lock const lock;
         auto peb_ldr_data = get_peb_ldr_data();
         link(
             *peb_ldr_data->InLoadOrderModuleList.Blink,
@@ -214,7 +145,6 @@ windower::cloak_guard::~cloak_guard()
 {
     if (cloaked_entry)
     {
-        loader_lock const lock;
         auto peb_ldr_data = get_peb_ldr_data();
         auto node         = peb_ldr_data->InLoadOrderModuleList.Flink;
         while (node != &peb_ldr_data->InLoadOrderModuleList)
