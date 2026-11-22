@@ -124,9 +124,16 @@ std::filesystem::path windower::settings_path()
 
 std::filesystem::path windower::user_path()
 {
+    return user_path(windower::core::instance().settings.user_path);
+}
+
+// Oriel: resolves the user path from a configured value without touching
+// core::instance(), so it is safe to call while the core is being built.
+std::filesystem::path windower::user_path(std::filesystem::path configured)
+{
     namespace fs = std::filesystem;
 
-    auto result = windower::core::instance().settings.user_path;
+    auto result = std::move(configured);
 
     if (result.empty())
     {

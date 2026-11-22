@@ -90,6 +90,8 @@
     <ClInclude Include="src\library.hpp" />
     <ClInclude Include="src\scanner.hpp" />
     <ClInclude Include="src\settings.hpp" />
+    <ClInclude Include="src\dat_overlays.hpp" />
+    <ClInclude Include="src\diag.hpp" />
     <ClInclude Include="src\debug_console.hpp" />
     <ClInclude Include="src\resource.hpp" />
     <ClInclude Include="src\handle.hpp" />
@@ -214,6 +216,8 @@
     <ClCompile Include="src\scanner.cpp" />
     <ClCompile Include="src\settings.cpp" />
     <ClCompile Include="src\core.cpp" />
+    <ClCompile Include="src\dat_overlays.cpp" />
+    <ClCompile Include="src\diag.cpp" />
     <ClCompile Include="src\debug_console.cpp" />
     <ClCompile Include="src\handle.cpp" />
     <ClCompile Include="src\hooklib\trampoline.cpp" />

@@ -76,6 +76,7 @@ bool is_game_module(void const*) noexcept;
 std::filesystem::path windower_path();
 std::filesystem::path settings_path();
 std::filesystem::path user_path();
+std::filesystem::path user_path(std::filesystem::path configured);
 std::filesystem::path temp_path();
 std::filesystem::path client_path();
 

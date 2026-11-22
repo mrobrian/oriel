@@ -28,6 +28,7 @@
 #include "command_handlers.hpp"
 #include "command_manager.hpp"
 #include "crash_handler.hpp"
+#include "dat_overlays.hpp"
 #include "debug_console.hpp"
 #include "hooks/advapi32.hpp"
 #include "hooks/d3d8.hpp"
@@ -259,6 +260,8 @@ windower::core::core() noexcept
     ddraw::install();
 
     settings.load();
+    // Oriel: user_path() would re-enter core::instance() here (deadlock).
+    dat_overlays::install(user_path(settings.user_path));
     crash_handler::instance().dump_path(settings.temp_path);
 
     run_on_next_frame([]() mutable {
