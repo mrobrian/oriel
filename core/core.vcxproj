@@ -43,6 +43,8 @@
     <ClInclude Include="src\addon\errors\package_error.hpp" />
     <ClInclude Include="src\addon\modules\class.hpp" />
     <ClInclude Include="src\addon\modules\hash.hpp" />
+    <ClInclude Include="src\addon\modules\input.hpp" />
+    <ClInclude Include="src\addon\modules\packages.hpp" />
     <ClInclude Include="src\addon\modules\os.hpp" />
     <ClInclude Include="src\addon\modules\pin.hpp" />
     <ClInclude Include="src\addon\unsafe.hpp" />
@@ -91,6 +93,8 @@
     <ClInclude Include="src\scanner.hpp" />
     <ClInclude Include="src\settings.hpp" />
     <ClInclude Include="src\dat_overlays.hpp" />
+    <ClInclude Include="src\error_log.hpp" />
+    <ClInclude Include="src\seh_translator.hpp" />
     <ClInclude Include="src\diag.hpp" />
     <ClInclude Include="src\debug_console.hpp" />
     <ClInclude Include="src\resource.hpp" />
@@ -173,6 +177,8 @@
     <ClCompile Include="src\addon\errors\package_error.cpp" />
     <ClCompile Include="src\addon\modules\class.cpp" />
     <ClCompile Include="src\addon\modules\hash.cpp" />
+    <ClCompile Include="src\addon\modules\input.cpp" />
+    <ClCompile Include="src\addon\modules\packages.cpp" />
     <ClCompile Include="src\addon\modules\os.cpp" />
     <ClCompile Include="src\addon\modules\pin.cpp" />
     <ClCompile Include="src\addon\unsafe.cpp" />
@@ -217,6 +223,8 @@
     <ClCompile Include="src\settings.cpp" />
     <ClCompile Include="src\core.cpp" />
     <ClCompile Include="src\dat_overlays.cpp" />
+    <ClCompile Include="src\error_log.cpp" />
+    <ClCompile Include="src\seh_translator.cpp" />
     <ClCompile Include="src\diag.cpp" />
     <ClCompile Include="src\debug_console.cpp" />
     <ClCompile Include="src\handle.cpp" />
@@ -346,6 +354,8 @@
     <None Include="src\addon\modules\command.lua" />
     <None Include="src\addon\modules\event.lua" />
     <None Include="src\addon\modules\hash.lua" />
+    <None Include="src\addon\modules\input.lua" />
+    <None Include="src\addon\modules\packages.lua" />
     <None Include="src\addon\modules\os.lua" />
     <None Include="src\addon\modules\packet.lua" />
     <None Include="src\addon\modules\pin.lua" />

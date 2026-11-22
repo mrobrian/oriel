@@ -33,6 +33,8 @@
 #include "addon/modules/command.hpp"
 #include "addon/modules/event.hpp"
 #include "addon/modules/hash.hpp"
+#include "addon/modules/input.hpp"
+#include "addon/modules/packages.hpp"
 #include "addon/modules/os.hpp"
 #include "addon/modules/packet.hpp"
 #include "addon/modules/pin.hpp"
@@ -452,6 +454,8 @@ void initialize(
     lua::preload(interpreter, u8"core.command", load_command_module);
     lua::preload(interpreter, u8"core.event", load_event_module);
     lua::preload(interpreter, u8"core.hash", load_hash_module);
+    lua::preload(interpreter, u8"core.input", load_input_module); // Oriel
+    lua::preload(interpreter, u8"core.packages", load_packages_module); // Oriel
     lua::preload(interpreter, u8"core.packet", load_packet_module);
     lua::preload(interpreter, u8"core.pin", load_pin_module);
     lua::preload(interpreter, u8"core.scanner", load_scanner_module);

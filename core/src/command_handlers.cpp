@@ -150,6 +150,11 @@ void windower::command_handlers::uninstall(
     if (core.addon_manager)
     {
         core.addon_manager->unload(args);
+        // Oriel: when an add-on runs /uninstall, the unload above is queued
+        // until add-ons finish running; remove the files only after it.
+        core.addon_manager->after_pending_changes(
+            [args]() { core::instance().package_manager->uninstall(args); });
+        return;
     }
 
     core.package_manager->uninstall(args);

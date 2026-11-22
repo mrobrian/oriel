@@ -291,6 +291,19 @@ windower::package_manager::installed_packages() const
     return result;
 }
 
+std::vector<windower::available_package>
+windower::package_manager::available_packages() const
+{
+    std::lock_guard<std::mutex> lock{m_mutex};
+    std::vector<available_package> result;
+    result.reserve(m_available_packages.size());
+    for (auto const& d : m_available_packages)
+    {
+        result.push_back({d.name, d.version, d.type, d.dependencies});
+    }
+    return result;
+}
+
 std::vector<std::shared_ptr<windower::package const>>
 windower::package_manager::installed_packages(package_type type) const
 {
@@ -962,6 +975,8 @@ void windower::package_manager::load_source(
                 d.name    = std::move(name);
                 d.version = package_version{
                     package.child("version").text().as_string()};
+                d.type = to_u8string(
+                    package.child("type").text().as_string("addon"));
                 if (auto const dependencies = package.child("dependencies"))
                 {
                     for (auto const& dependency :

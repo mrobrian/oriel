@@ -28,7 +28,9 @@
 #include "addon/lua.hpp"
 #include "core.hpp"
 
+#include <memory>
 #include <variant>
+#include <vector>
 
 namespace windower
 {
@@ -73,12 +75,19 @@ void run_on_all_interpreters(F&& function)
     }
     if (core.addon_manager)
     {
+        // Oriel: snapshot the interpreters first. A handler can load or
+        // unload add-ons, which changes loaded() while we'd be iterating it.
+        std::vector<std::shared_ptr<lua::state>> states;
         for (auto const& addon : core.addon_manager->loaded())
         {
             if (auto s = addon->root_handle().lock())
             {
-                function(*s);
+                states.push_back(std::move(s));
             }
+        }
+        for (auto const& s : states)
+        {
+            function(*s);
         }
     }
 }

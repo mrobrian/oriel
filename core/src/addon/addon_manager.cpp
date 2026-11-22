@@ -27,6 +27,8 @@
 #include "addon/addon.hpp"
 #include "core.hpp"
 
+#include <gsl/gsl>
+
 #include <algorithm>
 #include <iterator>
 #include <memory>
@@ -107,6 +109,17 @@ void windower::addon_manager::reload_all()
 
 void windower::addon_manager::run_until_idle()
 {
+    // Oriel: queue loads and unloads until the loop is done.
+    hold_changes();
+    auto const release = gsl::finally([this]() noexcept {
+        try
+        {
+            release_changes();
+        }
+        catch (...)
+        {
+        }
+    });
     for (auto const& a : m_loaded_addons)
     {
         try
@@ -117,6 +130,45 @@ void windower::addon_manager::run_until_idle()
         {
             raise_error(a->package().get(), std::current_exception());
         }
+    }
+}
+
+void windower::addon_manager::hold_changes() noexcept { ++m_hold; }
+
+void windower::addon_manager::release_changes()
+{
+    if (--m_hold > 0)
+    {
+        return;
+    }
+    m_hold = 0;
+    while (!m_deferred.empty())
+    {
+        auto pending = std::move(m_deferred);
+        m_deferred.clear();
+        for (auto const& action : pending)
+        {
+            try
+            {
+                action();
+            }
+            catch (...)
+            {
+                core::error(u8"addon manager", std::current_exception());
+            }
+        }
+    }
+}
+
+void windower::addon_manager::after_pending_changes(std::function<void()> action)
+{
+    if (m_hold > 0)
+    {
+        m_deferred.emplace_back(std::move(action));
+    }
+    else
+    {
+        action();
     }
 }
 
@@ -131,6 +183,12 @@ void windower::addon_manager::raise_error(
 void windower::addon_manager::load(
     std::vector<std::shared_ptr<package const>> const& packages)
 {
+    if (m_hold > 0)
+    {
+        m_deferred.emplace_back([this, packages]() { load(packages); });
+        return;
+    }
+
     for (auto const& package : packages)
     {
         if (package->type() != package_type::library)
@@ -154,6 +212,12 @@ void windower::addon_manager::load(
 void windower::addon_manager::unload(
     std::vector<std::shared_ptr<package const>> const& packages)
 {
+    if (m_hold > 0)
+    {
+        m_deferred.emplace_back([this, packages]() { unload(packages); });
+        return;
+    }
+
     for (auto const& package : packages)
     {
         if (package->type() != package_type::library)

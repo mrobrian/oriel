@@ -29,6 +29,7 @@
 #include "addon/scheduler.hpp"
 
 #include <exception>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -64,11 +65,27 @@ public:
 
     void run_until_idle();
 
+    // Oriel: runs the action now, or, if add-ons are being run (so loads and
+    // unloads are being queued), after those queued changes.
+    void after_pending_changes(std::function<void()> action);
+
+    // Oriel: while held, loads and unloads are queued; the last release runs
+    // them. Hold while calling into add-ons.
+    void hold_changes() noexcept;
+    void release_changes();
+
     void raise_error(gsl::not_null<package const*>, std::exception_ptr);
 
 private:
     std::mutex m_mutex;
     std::vector<std::unique_ptr<addon>> m_loaded_addons;
+
+    // Oriel: loads and unloads requested while add-ons are being run (an
+    // add-on running /load or /unload, or an add-on being unloaded after an
+    // error) are queued and run afterwards; changing m_loaded_addons while it
+    // was being iterated left the loop using a destroyed add-on.
+    int m_hold = 0;
+    std::vector<std::function<void()>> m_deferred;
 
     void load(std::vector<std::shared_ptr<package const>> const&);
     void unload(std::vector<std::shared_ptr<package const>> const&);

@@ -113,10 +113,22 @@ private:
     bool m_can_update;
 };
 
+// Oriel: a package offered by a package source (for the core.packages module).
+struct available_package
+{
+    std::u8string name;
+    package_version version;
+    std::u8string type;
+    std::vector<std::u8string> dependencies;
+};
+
 class package_manager
 {
 public:
     package_manager() noexcept;
+
+    // Oriel: the packages offered by the package sources, as last loaded.
+    std::vector<available_package> available_packages() const;
 
     std::vector<std::shared_ptr<windower::package const>>
     installed_packages() const;
@@ -175,6 +187,7 @@ private:
     {
         std::u8string name;
         package_version version;
+        std::u8string type; // Oriel
         std::vector<std::u8string> dependencies;
 
         std::u8string root_url;
