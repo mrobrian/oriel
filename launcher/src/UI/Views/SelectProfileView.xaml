@@ -409,6 +409,7 @@ SOFTWARE.
                         <MenuItem.Icon>
                             <Control Style="{StaticResource IconEllipsis}" Width="20" Height="20"/>
                         </MenuItem.Icon>
+                        <MenuItem Header="{StaticResource Strings.Packages}" Command="{Binding OpenPackagesPage}"/>
                         <MenuItem Header="{StaticResource Strings.About}" Command="{Binding OpenAboutPage}"/>
                     </MenuItem>
                 </Menu>

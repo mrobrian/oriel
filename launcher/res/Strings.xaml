@@ -172,4 +172,13 @@ SOFTWARE.
     <sys:String x:Key="Strings.CrashReporterReportingFailed">Failed to report crash</sys:String>
     <sys:String x:Key="Strings.CrashReporterReportingFailedDetails">A problem occurred while submitting the crash report. The crash report files have been saved to your hard drive.</sys:String>
     <sys:String x:Key="Strings.CrashReporterDeleteFiles">Delete crash report files</sys:String>
+    <sys:String x:Key="Strings.Packages">Packages</sys:String>
+    <sys:String x:Key="Strings.SearchPackages">Search packages by name or description</sys:String>
+    <sys:String x:Key="Strings.ShowLibraries">Show libraries</sys:String>
+    <sys:String x:Key="Strings.ShowLibrariesToolTip">Also list libraries and services. These are used by add-ons and are installed automatically when needed.</sys:String>
+    <sys:String x:Key="Strings.Update">Update</sys:String>
+    <sys:String x:Key="Strings.UpdateAll">Update all</sys:String>
+    <sys:String x:Key="Strings.Remove">Remove</sys:String>
+    <sys:String x:Key="Strings.LoadAtStartup">Load at startup</sys:String>
+    <sys:String x:Key="Strings.LoadAtStartupToolTip">Load this add-on automatically each time the game starts (saved in scripts\init.lua in your user folder).</sys:String>
 </ResourceDictionary>

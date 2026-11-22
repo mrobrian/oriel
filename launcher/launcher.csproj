@@ -76,6 +76,9 @@
   <ItemGroup>
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="src\Core\LargeAddressAware.cs" />
+    <Compile Include="src\Core\PackageCatalog.cs" />
+    <Compile Include="src\Core\PackageDescriptions.cs" />
+    <Compile Include="src\Core\StartupPackages.cs" />
     <Compile Include="src\Core\Updater.cs" />
     <Compile Include="src\Core\UpdateStatus.cs" />
     <Compile Include="src\Core\ExtensionMethods.cs" />
@@ -149,6 +152,10 @@
       <DependentUpon>AboutView.xaml</DependentUpon>
     </Compile>
     <Compile Include="src\UI\Views\AboutViewModel.cs" />
+    <Compile Include="src\UI\Views\PackagesView.xaml.cs">
+      <DependentUpon>PackagesView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="src\UI\Views\PackagesViewModel.cs" />
     <Compile Include="src\UI\Views\ClientNotFoundView.xaml.cs">
       <DependentUpon>ClientNotFoundView.xaml</DependentUpon>
     </Compile>
@@ -228,6 +235,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="src\UI\Views\AboutView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="src\UI\Views\PackagesView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

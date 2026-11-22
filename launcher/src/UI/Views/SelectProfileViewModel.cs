@@ -60,6 +60,7 @@ namespace Windower.UI.Views
             CreateProfileLink = new DelegateCommand(ExecuteCreateProfileLink, o => SelectedProfile != null)
                 .ObservesProperty(this, nameof(SelectedProfile));
             OpenAboutPage = new DelegateCommand(ExecuteOpenAboutPage);
+            OpenPackagesPage = new DelegateCommand(ExecuteOpenPackagesPage);
             OpenWebpage = new DelegateCommand(ExecuteOpenWebpage);
 
             this.manager.ProfilesChanged += ProfilesChanged;
@@ -90,6 +91,8 @@ namespace Windower.UI.Views
         public ICommand CreateProfileLink { get; }
 
         public ICommand OpenAboutPage { get; }
+
+        public ICommand OpenPackagesPage { get; }
 
         public ICommand OpenWebpage { get; }
 
@@ -204,6 +207,15 @@ namespace Windower.UI.Views
         }
 
         private void ExecuteOpenAboutPage(object arg) => navigation.Open(this, "About");
+
+        // Oriel: package browser. Uses the selected profile's settings and user folders, or the defaults.
+        private void ExecuteOpenPackagesPage(object arg)
+        {
+            var profile = SelectedProfile;
+            var settingsPath = Paths.ExpandPath(profile?.SettingsPath ?? Paths.GlobalSettingsPath);
+            var userPath = Paths.ExpandPath(profile?.UserPath ?? Paths.GlobalUserPath);
+            navigation.Open(this, "Packages", settingsPath, userPath);
+        }
 
         private void ExecuteOpenWebpage(object arg)
         {
