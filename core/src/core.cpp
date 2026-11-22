@@ -25,11 +25,14 @@
 #include "core.hpp"
 
 #include "addon/error.hpp"
+#include "addon/modules/input.hpp"
 #include "command_handlers.hpp"
 #include "command_manager.hpp"
 #include "crash_handler.hpp"
 #include "dat_overlays.hpp"
 #include "debug_console.hpp"
+#include "error_log.hpp"
+#include "seh_translator.hpp"
 #include "hooks/advapi32.hpp"
 #include "hooks/d3d8.hpp"
 #include "hooks/ddraw.hpp"
@@ -262,6 +265,7 @@ windower::core::core() noexcept
     settings.load();
     // Oriel: user_path() would re-enter core::instance() here (deadlock).
     dat_overlays::install(user_path(settings.user_path));
+    error_log::install(user_path(settings.user_path));
     crash_handler::instance().dump_path(settings.temp_path);
 
     run_on_next_frame([]() mutable {
@@ -382,6 +386,9 @@ void windower::core::error(
     std::u8string_view component, std::u8string_view text,
     command_source source)
 {
+    // Oriel: every error also goes to Saved Games\Oriel\logs\errors.log.
+    error_log::write(component, text);
+
     if (source < command_source::client)
     {
         auto w_text =
@@ -443,6 +450,17 @@ void windower::core::error(
         {
             error(component, e, source);
         }
+        catch (...)
+        {
+            // Oriel: not a C++ exception (a fault caught before the
+            // translator was installed, or a Lua error outside a protected
+            // call). Re-throwing it unhandled here crashed the game.
+            error(
+                component,
+                u8"unknown error (a fault or a Lua error outside a protected "
+                u8"call)",
+                source);
+        }
     }
     else
     {
@@ -452,6 +470,10 @@ void windower::core::error(
 
 void windower::core::update() noexcept
 {
+    // Oriel: faults while running add-ons become described errors (see
+    // seh_translator.hpp) instead of crashing when reported.
+    install_seh_translator();
+
     if (!m_updated)
     {
         m_updated = true;
@@ -494,6 +516,11 @@ std::optional<::LRESULT>
 windower::core::process_message(::MSG const& msg) noexcept
 {
     if (auto const result = ui.process_message(msg))
+    {
+        return result;
+    }
+    // Oriel: add-on input handlers (core.input) see what the UI didn't take.
+    if (auto const result = process_input_message(msg))
     {
         return result;
     }

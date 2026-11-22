@@ -158,8 +158,13 @@ windower::wait_state windower::scheduler::run_until_idle()
     while (!idle)
     {
         idle = true;
-        for (auto& scheduled_task : m_scheduled_tasks)
+        // Oriel: by index, re-reading the size and the element each time. A
+        // task can schedule new tasks while it runs, which can reallocate
+        // the vector; a range-for then went on through freed memory and
+        // resumed a dangling coroutine handle (a crash).
+        for (std::size_t i = 0; i < m_scheduled_tasks.size(); ++i)
         {
+            auto& scheduled_task = gsl::at(m_scheduled_tasks, i);
             if (!scheduled_task.done() &&
                 scheduled_task.wait_state() <=
                     wait_state{
@@ -223,10 +228,14 @@ windower::task windower::scheduler::initialize()
 
         auto wait = suspend;
         wait_state const now{std::chrono::steady_clock::now(), current_frame()};
-        for (auto& scheduled_task : m_scheduled_tasks)
+        // Oriel: by index, and the tag read before resuming (see
+        // run_until_idle: resuming can reallocate the vector).
+        for (std::size_t i = 0; i < m_scheduled_tasks.size(); ++i)
         {
+            auto& scheduled_task = gsl::at(m_scheduled_tasks, i);
             if (scheduled_task.wait_state() <= now)
             {
+                auto const tag = scheduled_task.tag();
                 auto exception = std::exception_ptr{};
                 try
                 {
@@ -241,7 +250,7 @@ windower::task windower::scheduler::initialize()
                 {
                     if (m_error_handler)
                     {
-                        if (!m_error_handler(exception, scheduled_task.tag()))
+                        if (!m_error_handler(exception, tag))
                         {
                             co_return;
                         }

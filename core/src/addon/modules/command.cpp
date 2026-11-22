@@ -140,8 +140,21 @@ extern "C"
         char8_t const* command_ptr, std::size_t command_length,
         std::int32_t source)
     {
-        windower::command_manager::instance().handle_command(
-            {command_ptr, command_length}, windower::command_source{source});
+        // Oriel: called through the FFI, where an exception reaches Lua only
+        // as "C++ exception". A failing command (a bad bind, say) is reported
+        // as a typed one would be, with its message, and the caller goes on.
+        try
+        {
+            windower::command_manager::instance().handle_command(
+                {command_ptr, command_length},
+                windower::command_source{source});
+        }
+        catch (...)
+        {
+            windower::core::error(
+                u8"command", std::current_exception(),
+                windower::command_source{source});
+        }
     }
 }
 

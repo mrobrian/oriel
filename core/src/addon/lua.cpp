@@ -26,6 +26,7 @@
 
 #include "addon/error.hpp"
 #include "addon/unsafe.hpp"
+#include "seh_translator.hpp"
 #include "utility.hpp"
 
 #include <lua.hpp>
@@ -656,7 +657,10 @@ void windower::lua::call(
         unwrapped, windower::lua::unsafe::key::error_handler);
     ::lua_rawget(unwrapped, LUA_REGISTRYINDEX);
     ::lua_insert(unwrapped, top);
-    auto const result = ::lua_pcall(unwrapped, args, results, top);
+    auto const result = [&] {
+        running_lua_state const running{unwrapped};
+        return ::lua_pcall(unwrapped, args, results, top);
+    }();
     ::lua_remove(unwrapped, top);
     switch (result)
     {
@@ -675,7 +679,11 @@ bool windower::lua::resume(stack_guard const& s, std::size_t args)
         throw error{"too few stack arguments"};
     }
 
-    switch (::lua_resume(unsafe::unwrap(s), args))
+    auto const status = [&] {
+        running_lua_state const running{unsafe::unwrap(s)};
+        return ::lua_resume(unsafe::unwrap(s), args);
+    }();
+    switch (status)
     {
     case LUA_OK: return false;
     case LUA_YIELD: return true;

@@ -71,14 +71,34 @@ windower::direct_3d_device::direct_3d_device(
         core.script_environment.reset();
         core.addon_manager = std::make_unique<addon_manager>();
 
-        std::vector<std::u8string> names;
+        // Oriel: start each service on its own (with what it depends on), so
+        // one that fails doesn't keep the others or the startup script from
+        // running. Failures show in chat and in logs\errors.log.
         for (auto const& p :
              core.package_manager->installed_packages(package_type::service))
         {
-            names.push_back(p->name());
+            try
+            {
+                core.addon_manager->load(
+                    std::vector<std::u8string>{std::u8string{p->name()}});
+            }
+            catch (...)
+            {
+                core::error(
+                    u8"startup: " + std::u8string{p->name()},
+                    std::current_exception(), command_source::client);
+            }
         }
-        core.addon_manager->load(names);
-        core.script_environment.execute(u8"init");
+        try
+        {
+            core.script_environment.execute(u8"init");
+        }
+        catch (...)
+        {
+            core::error(
+                u8"startup: init.lua", std::current_exception(),
+                command_source::client);
+        }
     });
 }
 
