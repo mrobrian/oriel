@@ -206,15 +206,21 @@ void mark(parse_result&, std::vector<std::size_t>& marks, std::size_t it)
 void complete_key(
     parse_result& result, std::vector<std::size_t>& marks, std::size_t it)
 {
+    // Oriel: the marks and it are positions, but parsed_key holds offsets
+    // and sizes (find() takes substr(offset, size)). Passing the end as the
+    // size worked only for a name at the start: "alt+m" looked up "m /al..."
+    // and failed with BIND:L1 (unknown key).
     switch (marks.size())
     {
     case 1:
         result.keys.emplace_back(
-            gsl::at(marks, 0), gsl::at(marks, 0), gsl::at(marks, 0), it);
+            gsl::at(marks, 0), std::size_t{0}, gsl::at(marks, 0),
+            it - gsl::at(marks, 0));
         break;
     case 3:
         result.keys.emplace_back(
-            gsl::at(marks, 0), gsl::at(marks, 1), gsl::at(marks, 2), it);
+            gsl::at(marks, 0), gsl::at(marks, 1) - gsl::at(marks, 0),
+            gsl::at(marks, 2), it - gsl::at(marks, 2));
         break;
     default:
         throw std::runtime_error{
@@ -229,8 +235,15 @@ void complete_flag(
 {
     switch (marks.size())
     {
-    case 1: result.flags.emplace_back(true, gsl::at(marks, 0), it); break;
-    case 2: result.flags.emplace_back(false, gsl::at(marks, 1), it); break;
+    // Oriel: offset and size, as for keys (see complete_key).
+    case 1:
+        result.flags.emplace_back(
+            true, gsl::at(marks, 0), it - gsl::at(marks, 0));
+        break;
+    case 2:
+        result.flags.emplace_back(
+            false, gsl::at(marks, 1), it - gsl::at(marks, 1));
+        break;
     default:
         throw std::runtime_error{
             "[INTERNAL PARSE ERROR] Unexpected mark count: " +
@@ -245,7 +258,10 @@ constexpr std::array<
 
 std::uint8_t next_token(std::u8string_view string, std::size_t& offset) noexcept
 {
-    if (string.empty())
+    // Oriel: was `if (string.empty())`, which made every non-empty bind
+    // string read as already ended ("BIND:P10: device or key name expected"),
+    // so no /bind could work. A character is read while one remains.
+    if (offset < string.size())
     {
         switch (auto const input = windower::next_code_point(string, offset))
         {
