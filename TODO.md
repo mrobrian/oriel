@@ -18,8 +18,8 @@ with little code. Altana is last; it depends on new core UI features.
 | 8 | In-game package browser (as a package) | Medium | Windows, lists, scrolling, buttons. Built: D:\oriel-packages\pkgbrowser + core.packages module; needs core rebuild + in-game test |
 | 9 | Port Outfitter | Large (10k lines) | Equipment, items, big data tables |
 | 10 | Core UI features: text layering, smooth scrolling, clipping, masked images | Core C++ | Needed by Altana |
-| 12 | Windower 4 compatibility, built in | Large, mostly Lua | Unchanged W4 add-ons in `Saved Games\Oriel\addons` load with `//lua load`; `//cmd` routing; packet sending allowed for W4 add-ons; plugins unsupported (clear message). Plus a `w4compat` package for module-at-a-time ports |
-| 11 | Port Altana | Very large (58k lines, 147 files) | Running via a Windower 4 compatibility layer (D:/oriel-packages/altana/compat); offline-tested, needs in-game test. Native rewrites of parts can come later |
+| 12 | Windower 4 compatibility, built in | Large, mostly Lua | Built (2026-11-22): the `w4compat` service package (D:/oriel-packages/w4compat) hosts any number of unchanged W4 add-ons, from W4 folders listed in its folders.txt (default `Saved Games\Oriel\windower4` and an existing W4 install); `/lua load` etc., `//cmd` (core), `outgoing text` (new core `client_command` event), packet sending for W4 add-ons, plugins get a clear message. All 27 installed add-ons load and run together offline. Needs in-game test. Gaps in the notes |
+| 11 | Port Altana | Very large (58k lines, 147 files) | Native (2026-11-22): an ordinary Oriel package, no compatibility layer (lib/sys.lua, lib/game.lua, lib/packets.lua, lib/res.lua, lib/config.lua; see altana/ORIEL.md). Drawing is Oriel's UI throughout. Offline-tested, needs in-game test |
 
 ## Notes
 
@@ -82,7 +82,11 @@ with little code. Altana is last; it depends on new core UI features.
     (`native/textview.lua`). Then the minimap's map as one round image
     (`native/minimap.lua`, drawn under the Windower 4 images through a new
     compat underlay hook). Offline-tested; need in-game test.
-11. **Altana.** Last, once 10 is done.
+11. **Altana.** Native since 2026-11-22. Settings stay in the same XML files and
+    format, so nothing is lost. Its own copy of Windower's resource files is in
+    res/ (it loops over all items and spells, which Oriel's resources library,
+    one call per entry to another Lua state, would make slow); refresh it from
+    Windower's resources when new items appear.
 12. **Windower 4 compatibility.** Offline survey (2026-11-21) of the 27
     Windower 4 add-ons installed: with a scratch copy of Altana's layer plus
     fixes, 26 load and run 300 frames with no errors, including GearSwap,
@@ -99,7 +103,14 @@ with little code. Altana is last; it depends on new core UI features.
     `set_equip`, `cancel_buff`, `get_item`/`put_item`) and blocking or
     changing outgoing packets, for Windower 4 add-ons only; `play_sound`,
     `copy_to_clipboard`; `socket.gettime` and Base64 `mime` stand-ins.
-    Still missing: `outgoing text` (needs a core hook on typed commands;
+    Missing at the survey: `outgoing text` (needs a core hook on typed commands;
     GearSwap uses it), `add item`/`remove item`, recast timers (read as
     ready; need memory signatures), learned abilities, merits/job points.
-    Not yet tried in game.
+    Built as w4compat (2026-11-22), with also: learned abilities (0x0AC),
+    ability recasts (0x119), merits (0x08C), job points (0x08D), add/remove
+    item events, outgoing text (core client_command event), lsqlite3 on
+    Windows' winsqlite3.dll (InfoBar), Shift-JIS text converted for chat and
+    text objects, windower.oriel_package_path (so the map API finds Oriel's
+    Altana). Still missing: spell recasts (game memory only; need a
+    signature), windower.ffxi.run/turn/follow (movement), moon phase,
+    menu_open, set_equip_set. Not yet tried in game.
