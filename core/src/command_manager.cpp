@@ -536,14 +536,25 @@ void windower::command_manager::unregister_alias(std::u8string_view alias)
 }
 
 void windower::command_manager::validate_command(
-    std::u8string_view const command_string) const
+    std::u8string_view command_string) const
 {
+    if (command_string.starts_with(u8"//"))
+    {
+        command_string.remove_prefix(1);   // As handle_command does
+    }
     parse_command(command_string);
 }
 
 void windower::command_manager::handle_command(
     std::u8string_view command_string, command_source const source)
 {
+    // Oriel: Windower 4's "//command" (its way to run a Windower command from
+    // the chat line, macros and scripts) runs "/command".
+    if (command_string.starts_with(u8"//"))
+    {
+        command_string.remove_prefix(1);
+    }
+
     std::u8string expanded;
     auto [component, command] = parse_command(command_string);
     if (!component)
