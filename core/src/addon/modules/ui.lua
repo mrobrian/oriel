@@ -49,7 +49,15 @@ local -- params
     slider_ptr,
     rectangle_ptr,
     rectangle_patch_ptr,
-    rectangle_nine_patch_ptr = ...
+    rectangle_nine_patch_ptr,
+    draw_text_ptr, -- Oriel
+    measure_text_ptr, -- Oriel
+    ellipse_flat_ptr, -- Oriel
+    ellipse_patch_ptr, -- Oriel
+    push_clip_ptr, -- Oriel
+    pop_clip_ptr, -- Oriel
+    polygon_ptr, -- Oriel
+    set_subpixel_ptr = ... -- Oriel
 -- LuaFormatter on
 
 local bit = require('bit')
@@ -390,6 +398,34 @@ local rectangle_flat = rectangle_flat_t(rectangle_ptr)
 local rectangle_patch = rectangle_patch_t(rectangle_patch_ptr)
 local rectangle_nine_patch = rectangle_nine_patch_t(rectangle_nine_patch_ptr)
 
+-- Oriel: free text drawing and measuring.
+local draw_text = ffi.typeof(
+    'void(*)($&,char const*,size_t,float,float,float,int32_t,int32_t,float)',
+    context_t)(draw_text_ptr)
+local measure_text = ffi.typeof(
+    'void(*)($&,char const*,size_t,float,float*,float*)',
+    context_t)(measure_text_ptr)
+local measure_out = ffi.new('float[2]')
+
+-- Oriel: ellipses.
+local ellipse_flat = ffi.typeof(
+    'void(*)($&,$ const&,int32_t)',
+    context_t, rectangle_t)(ellipse_flat_ptr)
+local ellipse_patch = ffi.typeof(
+    'void(*)($&,$ const&,void const*,size_t,$ const&,int32_t,float)',
+    context_t, rectangle_t, patch_t)(ellipse_patch_ptr)
+
+-- Oriel: clipping.
+local push_clip_native = ffi.typeof('void(*)($&,$ const&)', context_t,
+                                    rectangle_t)(push_clip_ptr)
+local pop_clip_native = ffi.typeof('void(*)($&)', context_t)(pop_clip_ptr)
+
+-- Oriel: filled polygons.
+local polygon_native = ffi.typeof(
+    'void(*)($&,float const*,size_t,int32_t,int32_t,float)',
+    context_t)(polygon_ptr)
+local set_subpixel_native = ffi.typeof('void(*)(bool)')(set_subpixel_ptr)
+
 local ui = {}
 
 ui.system_color = function(index)
@@ -697,6 +733,8 @@ do
                 if current_context ~= nil then
                     local ok, message = coroutine_resume(wrapper)
                     current_context = nil
+                    -- Oriel: never left on for whoever draws next.
+                    set_subpixel_native(false)
                     assert(ok, message)
                     if coroutine_status(wrapper) == 'dead' then
                         break
@@ -847,9 +885,9 @@ do
             if k == 'title' then return rawget(t, title_key) end
             local state = rawget(t, native_key)
             if k == 'layer' then
-                return layer_names[state.style]
+                return layer_names[state.layer]
             elseif k == 'style' then
-                return window_style_names[state.layer]
+                return window_style_names[state.style]
             elseif k == 'position' then
                 return {x = state.bounds.x0, y = state.bounds.y0}
             elseif k == 'size' then
@@ -1039,6 +1077,143 @@ do
             end
         end
         rectangle_impl(texture, patch, color)
+    end
+end
+
+-- Oriel: primitive: ellipse
+--   ui.primitive.ellipse(x, y, width, height[, color])
+--   ui.primitive.ellipse(x, y, width, height, texture[, patch][, color[, rotation]])
+-- The ellipse (a circle, for equal width and height) inside the bounds. With
+-- a texture, the patch's part of it (all of it without a patch) is
+-- stretched over the bounds and cut to the ellipse: a round minimap is one
+-- call. rotation (radians, clockwise) turns the image inside the shape.
+do
+    local ui_color_white = ui.color.white
+    local ffi_istype = ffi.istype
+
+    local bounds = rectangle_t()
+
+    local whole = patch_t()
+    whole.texture_size.width = 1
+    whole.texture_size.height = 1
+    whole.bounds.x1 = 1
+    whole.bounds.y1 = 1
+
+    ui.primitive.ellipse = function(x, y, width, height, texture, patch, color,
+                                    rotation)
+        bounds.x0 = x
+        bounds.y0 = y
+        bounds.x1 = x + width
+        bounds.y1 = y + height
+        if type(texture) == 'number' then
+            color, texture, patch = texture, nil, nil
+        elseif type(patch) == 'number' then
+            color, rotation, patch = patch, color, nil
+        end
+        if color == nil then color = ui_color_white end
+
+        if texture == nil or texture == '' then
+            ellipse_flat(current_context, bounds, color)
+            return
+        end
+        if patch == nil then
+            patch = whole
+        elseif not ffi_istype(patch, patch_t) then
+            error('ellipse: the patch must come from ui.primitive.patch', 2)
+        end
+        local size = 0
+        if type(texture) == 'string' then size = #texture end
+        ellipse_patch(current_context, bounds, texture, size, patch, color,
+                      rotation or 0)
+    end
+end
+
+-- Oriel: rectangles (ui.primitive.rectangle) are placed on whole pixels, so
+-- they're crisp. ui.primitive.subpixel(true) places them exactly instead,
+-- for small images that move with something drawn smoothly (dots on a map
+-- that moves by fractions of a pixel), until ui.primitive.subpixel(false).
+-- It's turned off after each ui.display function returns.
+ui.primitive.subpixel = function(enabled)
+    set_subpixel_native(not not enabled)
+end
+
+-- Oriel: filled polygons, with a smooth edge.
+--   ui.primitive.polygon(points, color[, outline_color, outline_width])
+-- points is a list of corners {x1, y1, x2, y2, ...} in UI pixels, in order
+-- either way round; the shape must be star-shaped about the average of its
+-- corners (any convex shape; an arrow). The outline is a band just inside the
+-- edge. Colors are ARGB numbers.
+do
+    local buffer_size = 0
+    local buffer
+
+    ui.primitive.polygon = function(points, color, outline_color,
+                                    outline_width)
+        if current_context == nil then return end
+        local count = math.floor(#points / 2)
+        if count < 3 then return end
+        if count > buffer_size then
+            buffer_size = count
+            buffer = ffi.new('float[?]', 2 * count)
+        end
+        for i = 1, 2 * count do buffer[i - 1] = points[i] end
+        polygon_native(current_context, buffer, count, color or ui.color.white,
+                       outline_color or 0, outline_width or 0)
+    end
+end
+
+-- Oriel: clipping, for drawing outside windows (a list that scrolls by the
+-- pixel, cut at its edges).
+--   ui.push_clip(x, y, width, height)   -- inside any clip already pushed
+--   ui.pop_clip()
+--   ui.clip(x, y, width, height, fn)    -- fn() drawn clipped; pops on errors too
+do
+    local clip_rect = rectangle_t()
+
+    ui.push_clip = function(x, y, width, height)
+        clip_rect.x0 = x
+        clip_rect.y0 = y
+        clip_rect.x1 = x + width
+        clip_rect.y1 = y + height
+        push_clip_native(current_context, clip_rect)
+    end
+
+    ui.pop_clip = function()
+        pop_clip_native(current_context)
+    end
+
+    ui.clip = function(x, y, width, height, fn)
+        ui.push_clip(x, y, width, height)
+        local ok, err = pcall(fn)
+        ui.pop_clip()
+        if not ok then error(err, 0) end
+    end
+end
+
+-- Oriel: primitive: text, and text measuring.
+--   ui.primitive.text(x, y, text[, width[, color[, stroke_color[, stroke_width]]]])
+--   ui.measure_text(text[, width]) -> width, height
+-- text may use label markup ([text]{bold 14px red}). width (UI pixels) wraps
+-- the text; nil or 0 means a single line. Colors are ARGB numbers.
+do
+    local ui_color_white = ui.color.white
+    local ui_color_transparent = ui.color.transparent or 0
+
+    ui.primitive.text = function(x, y, text, width, color, stroke_color,
+                                 stroke_width)
+        if current_context == nil or text == nil or text == '' then return end
+        draw_text(current_context, text, #text, x, y, width or 0,
+                  color or ui_color_white, stroke_color or ui_color_transparent,
+                  stroke_width or 0)
+    end
+
+    ui.measure_text = function(text, width)
+        if text == nil or text == '' then return 0, 0 end
+        local context = current_context or get_context()
+        if context == nil then return 0, 0 end
+        measure_text(context, text, #text, width or 0, measure_out,
+                     measure_out + 1)
+        return measure_out[0], measure_out[1]
     end
 end
 
@@ -1896,16 +2071,16 @@ do
                 state.offset.x = v.x
                 state.offset.y = v.y
             elseif k == 'x' then
-                state.offset.x = v.x
+                state.offset.x = v
             elseif k == 'y' then
-                state.offset.y = v.y
+                state.offset.y = v
             elseif k == 'canvas_size' then
                 state.canvas_size.width = v.width
                 state.canvas_size.height = v.height
             elseif k == 'width' then
-                state.canvas_size.width = v.width
+                state.canvas_size.width = v
             elseif k == 'height' then
-                state.canvas_size.height = v.height
+                state.canvas_size.height = v
             elseif k == 'visibility_horizontal' then
                 state.visibility_horizontal = scroll_bar_visibility_t[v]
             elseif k == 'visibility_vertical' then

@@ -42,6 +42,12 @@
 #include <gsl/gsl>
 
 #include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <vector>
 #include <cstddef>
 #include <string_view>
 #include <utility>
@@ -246,10 +252,122 @@ winrt::com_ptr<::IWICBitmapSource> load(context& ctx, ::IWICStream* stream)
     return nullptr;
 }
 
+// Oriel: uncompressed true-color TGA files (type 2, 24 or 32 bits), which
+// WIC can't decode. Windower 4 add-ons generate these.
+winrt::com_ptr<::IWICBitmapSource>
+load_tga(context& ctx, std::u8string_view name, float& width, float& height)
+{
+    if (name.size() < 4 || name.starts_with(u8':'))
+    {
+        return nullptr;
+    }
+    auto extension = std::u8string{name.substr(name.size() - 4)};
+    for (auto& c : extension)
+    {
+        if (c >= u8'A' && c <= u8'Z')
+        {
+            c = gsl::narrow_cast<char8_t>(c - u8'A' + u8'a');
+        }
+    }
+    if (extension != u8".tga")
+    {
+        return nullptr;
+    }
+
+    std::ifstream file{std::filesystem::path{name}, std::ios::binary};
+    if (!file)
+    {
+        return nullptr;
+    }
+    std::vector<std::uint8_t> const data{
+        std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    if (data.size() < 18)
+    {
+        return nullptr;
+    }
+
+    auto const byte = [&](std::size_t i) noexcept {
+        return std::size_t{gsl::at(data, gsl::narrow_cast<std::ptrdiff_t>(i))};
+    };
+    auto const id_length   = byte(0);
+    auto const color_map   = byte(1);
+    auto const image_type  = byte(2);
+    auto const w           = byte(12) | byte(13) << 8;
+    auto const h           = byte(14) | byte(15) << 8;
+    auto const bits        = byte(16);
+    auto const top_down    = (byte(17) & 0x20) != 0;
+    auto const pixel_bytes = bits / 8;
+    auto const offset      = 18 + id_length;
+    if (color_map != 0 || image_type != 2 || (bits != 24 && bits != 32) ||
+        w == 0 || h == 0 || data.size() < offset + w * h * pixel_bytes)
+    {
+        return nullptr;
+    }
+
+    // To top-down 32-bit BGRA.
+    std::vector<std::uint8_t> pixels(w * h * 4);
+    for (std::size_t y = 0; y < h; ++y)
+    {
+        auto const source_row = top_down ? y : h - 1 - y;
+        for (std::size_t x = 0; x < w; ++x)
+        {
+            auto const s = offset + (source_row * w + x) * pixel_bytes;
+            auto const d = gsl::narrow_cast<std::ptrdiff_t>((y * w + x) * 4);
+            gsl::at(pixels, d)     = gsl::narrow_cast<std::uint8_t>(byte(s));
+            gsl::at(pixels, d + 1) = gsl::narrow_cast<std::uint8_t>(byte(s + 1));
+            gsl::at(pixels, d + 2) = gsl::narrow_cast<std::uint8_t>(byte(s + 2));
+            gsl::at(pixels, d + 3) = gsl::narrow_cast<std::uint8_t>(
+                pixel_bytes == 4 ? byte(s + 3) : 0xFF);
+        }
+    }
+
+    winrt::com_ptr<::IWICBitmap> bitmap;
+    if (FAILED(ctx.wic_factory()->CreateBitmapFromMemory(
+            gsl::narrow_cast<::UINT>(w), gsl::narrow_cast<::UINT>(h),
+            ::GUID_WICPixelFormat32bppBGRA, gsl::narrow_cast<::UINT>(w * 4),
+            gsl::narrow_cast<::UINT>(pixels.size()), pixels.data(),
+            bitmap.put())))
+    {
+        return nullptr;
+    }
+    winrt::com_ptr<::IWICBitmapSource> source;
+    if (FAILED(bitmap->QueryInterface(
+            ::IID_IWICBitmapSource, source.put_void())))
+    {
+        return nullptr;
+    }
+    width  = gsl::narrow_cast<float>(w);
+    height = gsl::narrow_cast<float>(h);
+    return source;
+}
+
 }
 
 bitmap bitmap::load(context& ctx, std::u8string_view name) noexcept
 {
+    // Oriel: "path|tag" names the same file as "path"; the tag only makes a
+    // separate texture cache entry, so a file rewritten under the same name
+    // can be loaded again.
+    if (auto const bar = name.find(u8'|'); bar != std::u8string_view::npos)
+    {
+        name = name.substr(0, bar);
+    }
+
+    try
+    {
+        float tga_width  = 0.f;
+        float tga_height = 0.f;
+        if (auto tga = load_tga(ctx, name, tga_width, tga_height))
+        {
+            return {
+                std::move(tga),
+                {{0, 0, tga_width, tga_height}, {}, {tga_width, tga_height}}};
+        }
+    }
+    catch (...)
+    {
+    }
+
     auto [stream, scale] = open(ctx, name);
 
     winrt::com_ptr<::IWICBitmapDecoder> decoder;

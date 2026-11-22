@@ -43,11 +43,14 @@
 #include "ui/widget/slider.hpp"
 #include "ui/widget/window.hpp"
 
+#include <gsl/gsl>
 #include <lua.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
+#include <vector>
 #include <type_traits>
 
 namespace windower
@@ -210,6 +213,50 @@ extern "C"
         }
     }
 
+    // Oriel: draws (markup) text at a position, without the label widget's
+    // padding or system color. width <= 0 means no wrapping.
+    void draw_text(
+        context& ctx, char8_t const* text_data, std::size_t text_size,
+        float x, float y, float width, std::int32_t fill_color,
+        std::int32_t stroke_color, float stroke_width)
+    {
+        text_layout_options layout_options;
+        if (width <= 0)
+        {
+            width                        = dimension::unbounded;
+            layout_options.word_wrapping = text_word_wrapping::no_wrap;
+        }
+        auto const layout = primitive::layout_text(
+            ctx, {width, dimension::unbounded}, {text_data, text_size},
+            layout_options);
+        text_rasterization_options options;
+        options.fill_color   = ui::color{fill_color};
+        options.stroke_color = ui::color{stroke_color};
+        options.stroke_width = stroke_width;
+        primitive::text(ctx, vector{x, y}, layout, options);
+    }
+
+    // Oriel: the size (UI pixels) of (markup) text as draw_text draws it.
+    void measure_text(
+        context& ctx, char8_t const* text_data, std::size_t text_size,
+        float width, float* out_width, float* out_height)
+    {
+        text_layout_options layout_options;
+        if (width <= 0)
+        {
+            width                        = dimension::unbounded;
+            layout_options.word_wrapping = text_word_wrapping::no_wrap;
+        }
+        auto const layout = primitive::layout_text(
+            ctx, {width, dimension::unbounded}, {text_data, text_size},
+            layout_options);
+        // The text's own extent (size() is the box it was laid out in, which
+        // is unbounded without a wrap width).
+        auto const& bounds = layout.metric_bounds();
+        *out_width         = bounds.width();
+        *out_height        = bounds.height();
+    }
+
     void rectangle_flat(
         context& ctx, ui::rectangle const& bounds, std::int32_t color)
     {
@@ -230,6 +277,55 @@ extern "C"
     {
         set_texture(ctx, texture_data, texture_size);
         primitive::rectangle(ctx, bounds, patch, ui::color{color});
+    }
+
+    // Oriel: clipping for free drawing (scrolling lists outside windows).
+    void push_clip(context& ctx, ui::rectangle const& clip)
+    {
+        ctx.push_clip(clip);
+    }
+
+    void pop_clip(context& ctx) { ctx.pop_clip(); }
+
+    // Oriel: rectangles placed exactly instead of on whole pixels.
+    void set_subpixel(bool enabled) { primitive::set_subpixel(enabled); }
+
+    // Oriel: a filled polygon; xy holds count corners as x, y pairs.
+    void polygon(
+        context& ctx, float const* xy, std::size_t count,
+        std::int32_t fill_color, std::int32_t outline_color,
+        float outline_width)
+    {
+        if (xy == nullptr || count < 3 || count > 1000)
+        {
+            return;
+        }
+        std::span<float const> const values{xy, 2 * count};
+        std::vector<ui::vector> points;
+        points.reserve(count);
+        for (std::size_t i = 0; i < count; ++i)
+        {
+            points.push_back({gsl::at(values, 2 * i), gsl::at(values, 2 * i + 1)});
+        }
+        primitive::polygon(
+            ctx, points, ui::color{fill_color}, ui::color{outline_color},
+            outline_width);
+    }
+
+    // Oriel: ellipses (round minimaps and the like).
+    void ellipse_flat(
+        context& ctx, ui::rectangle const& bounds, std::int32_t color)
+    {
+        primitive::ellipse(ctx, bounds, ui::color{color});
+    }
+
+    void ellipse_patch(
+        context& ctx, ui::rectangle const& bounds, void const* texture_data,
+        std::size_t texture_size, patch const& patch, std::int32_t color,
+        float rotation)
+    {
+        set_texture(ctx, texture_data, texture_size);
+        primitive::ellipse(ctx, bounds, patch, ui::color{color}, rotation);
     }
 }
 
@@ -267,6 +363,14 @@ int load_ui_module(lua::state s)
     lua::push(guard, &ui::wrappers::rectangle_flat);
     lua::push(guard, &ui::wrappers::rectangle_patch);
     lua::push(guard, &ui::wrappers::rectangle_nine_patch);
+    lua::push(guard, &ui::wrappers::draw_text); // Oriel
+    lua::push(guard, &ui::wrappers::measure_text); // Oriel
+    lua::push(guard, &ui::wrappers::ellipse_flat); // Oriel
+    lua::push(guard, &ui::wrappers::ellipse_patch); // Oriel
+    lua::push(guard, &ui::wrappers::push_clip); // Oriel
+    lua::push(guard, &ui::wrappers::pop_clip); // Oriel
+    lua::push(guard, &ui::wrappers::polygon); // Oriel
+    lua::push(guard, &ui::wrappers::set_subpixel); // Oriel
     lua::call(guard, guard.size() - 1);
 
     return guard.release();

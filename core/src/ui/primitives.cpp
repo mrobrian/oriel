@@ -37,12 +37,30 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <numeric>
+#include <span>
 #include <utility>
+#include <vector>
 
 namespace windower::ui::primitive
 {
+
+namespace
+{
+// Oriel: see set_subpixel.
+bool subpixel_enabled = false;
+
+// A rectangle's edge, in physical pixels: on a whole pixel (crisp), unless
+// sub-pixel placement is on.
+float snap(float value) noexcept
+{
+    return subpixel_enabled ? value : std::round(value);
+}
+}
+
+void set_subpixel(bool enabled) noexcept { subpixel_enabled = enabled; }
 
 void set_texture(
     context& ctx, std::u8string_view name, std::size_t time_to_live) noexcept
@@ -107,10 +125,10 @@ void rectangle(context& ctx, ui::rectangle const& bounds, color c) noexcept
     auto const scale_x = scale.x * zoom;
     auto const scale_y = scale.y * zoom;
 
-    x0 = std::round(scale_x * x0);
-    y0 = std::round(scale_y * y0);
-    x1 = std::round(scale_x * x1);
-    y1 = std::round(scale_y * y1);
+    x0 = snap(scale_x * x0);
+    y0 = snap(scale_y * y0);
+    x1 = snap(scale_x * x1);
+    y1 = snap(scale_y * y1);
 
     auto p0 = transform * vector{x0, y0};
     auto p1 = transform * vector{x1, y0};
@@ -183,10 +201,10 @@ void rectangle(
     auto const scale_x = scale.x * zoom;
     auto const scale_y = scale.y * zoom;
 
-    x0 = std::round(scale_x * x0);
-    y0 = std::round(scale_y * y0);
-    x1 = std::round(scale_x * x1);
-    y1 = std::round(scale_y * y1);
+    x0 = snap(scale_x * x0);
+    y0 = snap(scale_y * y0);
+    x1 = snap(scale_x * x1);
+    y1 = snap(scale_y * y1);
 
     if (x0 >= x1 || y0 >= y1)
     {
@@ -617,6 +635,337 @@ void rectangle(
 //         // ctx.line_strip(vertex_span, index_span);
 //     }
 // }
+
+namespace
+{
+// Oriel: an ellipse as a fan of triangles around its center. tex is the
+// texture region (normalized; all zero for a flat color).
+void ellipse_impl(
+    context& ctx, ui::rectangle const& bounds, ui::rectangle const& tex,
+    color c, float rotation) noexcept
+{
+    auto const origin       = ctx.origin();
+    auto const zoom         = ctx.zoom_factor();
+    auto const scale        = ctx.scale_factor();
+    auto const [depth, rhw] = ctx.depth();
+
+    auto transform = ctx.current_transform();
+
+    auto x0 = bounds.x0;
+    auto y0 = bounds.y0;
+    auto x1 = bounds.x1;
+    auto y1 = bounds.y1;
+
+    if (x1 < x0)
+    {
+        std::swap(x0, x1);
+        transform = transform * transform::scale(-1, 1);
+    }
+
+    if (y1 < y0)
+    {
+        std::swap(y0, y1);
+        transform = transform * transform::scale(1, -1);
+    }
+
+    transform = scale_correction(transform, scale);
+
+    auto const origin_x = std::round(scale.x * origin.x) - .5f;
+    auto const origin_y = std::round(scale.y * origin.y) - .5f;
+
+    auto const scale_x = scale.x * zoom;
+    auto const scale_y = scale.y * zoom;
+
+    x0 = scale_x * x0;
+    y0 = scale_y * y0;
+    x1 = scale_x * x1;
+    y1 = scale_y * y1;
+
+    if (x0 >= x1 || y0 >= y1)
+    {
+        return;
+    }
+
+    auto const cx = (x0 + x1) / 2;
+    auto const cy = (y0 + y1) / 2;
+    auto const rx = (x1 - x0) / 2;
+    auto const ry = (y1 - y0) / 2;
+
+    // About 3 pixels per edge, between 24 and 256 edges.
+    constexpr auto pi = 3.14159265358979323846f;
+    auto const perimeter = 2 * pi * std::max(rx, ry);
+    auto const segments  = gsl::narrow_cast<std::uint16_t>(
+        std::clamp(std::ceil(perimeter / 3.f), 24.f, 256.f));
+
+    auto const cos_r = std::cos(rotation);
+    auto const sin_r = std::sin(rotation);
+    auto const tw    = tex.x1 - tex.x0;
+    auto const th    = tex.y1 - tex.y0;
+
+    c = to_associated_alpha(c);
+    auto const clear = to_associated_alpha(ui::color{0});
+
+    // (dx, dy): position relative to the center, in units of the radii
+    // (-1..1). The texture is sampled turned back by the rotation, so the
+    // image appears turned by it.
+    auto const make_vertex = [&](float dx, float dy, color vc) noexcept {
+        auto const p  = transform * vector{cx + rx * dx, cy + ry * dy};
+        auto const tu = cos_r * dx + sin_r * dy;
+        auto const tv = -sin_r * dx + cos_r * dy;
+        return vertex{
+            p.x + origin_x,
+            p.y + origin_y,
+            depth,
+            rhw,
+            tex.x0 + tw * (tu + 1) / 2,
+            tex.y0 + th * (tv + 1) / 2,
+            vc};
+    };
+
+    // The edge fades out over one pixel (half inside, half outside), so it
+    // isn't jagged: a fan of triangles to an inner ring, then a band from
+    // the inner ring to a transparent outer one.
+    auto const in_x  = (rx - .5f) / rx;
+    auto const in_y  = (ry - .5f) / ry;
+    auto const out_x = (rx + .5f) / rx;
+    auto const out_y = (ry + .5f) / ry;
+
+    std::vector<vertex> vertices;
+    std::vector<std::uint16_t> indices;
+    vertices.reserve(2 * static_cast<std::size_t>(segments) + 1);
+    indices.reserve(9 * static_cast<std::size_t>(segments));
+
+    vertices.push_back(make_vertex(0, 0, c));
+    for (std::uint16_t i = 0; i < segments; ++i)
+    {
+        auto const angle = 2 * pi * i / segments;
+        auto const dx    = std::cos(angle);
+        auto const dy    = std::sin(angle);
+        vertices.push_back(make_vertex(in_x * dx, in_y * dy, c));
+        vertices.push_back(make_vertex(out_x * dx, out_y * dy, clear));
+
+        auto const inner      = gsl::narrow_cast<std::uint16_t>(2 * i + 1);
+        auto const outer      = gsl::narrow_cast<std::uint16_t>(2 * i + 2);
+        auto const next_inner = gsl::narrow_cast<std::uint16_t>(
+            i + 1 < segments ? 2 * i + 3 : 1);
+        auto const next_outer = gsl::narrow_cast<std::uint16_t>(
+            i + 1 < segments ? 2 * i + 4 : 2);
+
+        indices.push_back(0);
+        indices.push_back(inner);
+        indices.push_back(next_inner);
+
+        indices.push_back(inner);
+        indices.push_back(outer);
+        indices.push_back(next_outer);
+
+        indices.push_back(inner);
+        indices.push_back(next_outer);
+        indices.push_back(next_inner);
+    }
+
+    ctx.draw_triangle_list(
+        std::span<vertex const>{vertices},
+        std::span<std::uint16_t const>{indices}, determinant(transform) < 0);
+}
+}
+
+void ellipse(context& ctx, ui::rectangle const& bounds, color c) noexcept
+{
+    set_texture(ctx, no_texture);
+    ellipse_impl(ctx, bounds, {0, 0, 0, 0}, c, 0.f);
+}
+
+void ellipse(
+    context& ctx, ui::rectangle const& bounds, patch const& patch, color c,
+    float rotation) noexcept
+{
+    ui::rectangle const tex{
+        patch.bounds.x0 / patch.texture_size.width,
+        patch.bounds.y0 / patch.texture_size.height,
+        patch.bounds.x1 / patch.texture_size.width,
+        patch.bounds.y1 / patch.texture_size.height};
+    ellipse_impl(ctx, bounds, tex, c, rotation);
+}
+
+// Oriel: see primitives.hpp. The corners are moved in and out along their
+// miters to make rings: the fill is a fan from the center to the innermost
+// ring, then bands between rings carry the outline and the feathered edge.
+void polygon(
+    context& ctx, std::span<ui::vector const> points, color fill,
+    color outline, float outline_width) noexcept
+{
+    auto const n = points.size();
+    if (n < 3 || n > 1000)
+    {
+        return;
+    }
+    set_texture(ctx, no_texture);
+
+    auto const origin       = ctx.origin();
+    auto const zoom         = ctx.zoom_factor();
+    auto const scale        = ctx.scale_factor();
+    auto const [depth, rhw] = ctx.depth();
+    auto const transform =
+        scale_correction(ctx.current_transform(), scale);
+    auto const origin_x = std::round(scale.x * origin.x) - .5f;
+    auto const origin_y = std::round(scale.y * origin.y) - .5f;
+    auto const scale_x  = scale.x * zoom;
+    auto const scale_y  = scale.y * zoom;
+
+    // Physical pixels, turned clockwise (on screen) if they weren't.
+    std::vector<float> px(n);
+    std::vector<float> py(n);
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        px.at(i) = scale_x * gsl::at(points, i).x;
+        py.at(i) = scale_y * gsl::at(points, i).y;
+    }
+    auto area = 0.f;
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        auto const j = (i + 1) % n;
+        area += px.at(i) * py.at(j) - px.at(j) * py.at(i);
+    }
+    if (area == 0)
+    {
+        return;
+    }
+    if (area < 0)
+    {
+        std::reverse(px.begin(), px.end());
+        std::reverse(py.begin(), py.end());
+    }
+
+    // Outward normals of the edges (corner i to i + 1), then each corner's
+    // miter: how far it moves for its edges to move one pixel out.
+    std::vector<float> nx(n);
+    std::vector<float> ny(n);
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        auto const j   = (i + 1) % n;
+        auto const dx  = px.at(j) - px.at(i);
+        auto const dy  = py.at(j) - py.at(i);
+        auto const len = std::sqrt(dx * dx + dy * dy);
+        nx.at(i) = len > 0 ? dy / len : 0;
+        ny.at(i) = len > 0 ? -dx / len : 0;
+    }
+    std::vector<float> mx(n);
+    std::vector<float> my(n);
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        auto const h   = (i + n - 1) % n;
+        auto const dot = nx.at(h) * nx.at(i) + ny.at(h) * ny.at(i);
+        auto const k   = 1 / std::max(1 + dot, .125f);
+        auto x         = (nx.at(h) + nx.at(i)) * k;
+        auto y         = (ny.at(h) + ny.at(i)) * k;
+        auto const len = std::sqrt(x * x + y * y);
+        if (len > 4)
+        {
+            x = x * 4 / len;
+            y = y * 4 / len;
+        }
+        mx.at(i) = x;
+        my.at(i) = y;
+    }
+
+    auto cx = 0.f;
+    auto cy = 0.f;
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        cx += px.at(i);
+        cy += py.at(i);
+    }
+    cx /= gsl::narrow_cast<float>(n);
+    cy /= gsl::narrow_cast<float>(n);
+
+    auto const fill_c    = to_associated_alpha(fill);
+    auto const outline_c = to_associated_alpha(outline);
+    auto const clear     = to_associated_alpha(ui::color{0});
+
+    // Rings, inside out: (offset from the edge in pixels, color).
+    std::vector<std::pair<float, color>> rings;
+    auto const width = outline_width * scale_x;
+    if (width > 0)
+    {
+        auto const w = std::max(width, 1.f);
+        rings.emplace_back(-w - .5f, fill_c);
+        rings.emplace_back(-w + .5f, outline_c);
+        if (w > 1)
+        {
+            rings.emplace_back(-.5f, outline_c);
+        }
+        rings.emplace_back(.5f, clear);
+    }
+    else
+    {
+        rings.emplace_back(-.5f, fill_c);
+        rings.emplace_back(.5f, clear);
+    }
+
+    auto const make_vertex = [&](float x, float y, color vc) noexcept {
+        auto const p = transform * vector{x, y};
+        return vertex{p.x + origin_x, p.y + origin_y, depth, rhw, 0, 0, vc};
+    };
+
+    std::vector<vertex> vertices;
+    std::vector<std::uint16_t> indices;
+    vertices.reserve(1 + rings.size() * n);
+    indices.reserve(3 * n + 6 * n * rings.size());
+
+    vertices.push_back(make_vertex(cx, cy, fill_c));
+    for (auto const& [offset, ring_color] : rings)
+    {
+        for (std::size_t i = 0; i < n; ++i)
+        {
+            auto dx = mx.at(i) * offset;
+            auto dy = my.at(i) * offset;
+            if (offset < 0)
+            {
+                // Inward, a sharp corner of a small shape could pass the
+                // center and fold the fill over: at most 80% of the way.
+                auto const to_cx = cx - px.at(i);
+                auto const to_cy = cy - py.at(i);
+                auto const reach = .8f * std::sqrt(to_cx * to_cx + to_cy * to_cy);
+                auto const moved = std::sqrt(dx * dx + dy * dy);
+                if (moved > reach && moved > 0)
+                {
+                    dx = dx * reach / moved;
+                    dy = dy * reach / moved;
+                }
+            }
+            vertices.push_back(
+                make_vertex(px.at(i) + dx, py.at(i) + dy, ring_color));
+        }
+    }
+
+    auto const at = [n](std::size_t ring, std::size_t i) noexcept {
+        return gsl::narrow_cast<std::uint16_t>(1 + ring * n + i % n);
+    };
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        indices.push_back(0);
+        indices.push_back(at(0, i));
+        indices.push_back(at(0, i + 1));
+    }
+    for (std::size_t r = 0; r + 1 < rings.size(); ++r)
+    {
+        for (std::size_t i = 0; i < n; ++i)
+        {
+            indices.push_back(at(r, i));
+            indices.push_back(at(r + 1, i));
+            indices.push_back(at(r + 1, i + 1));
+
+            indices.push_back(at(r, i));
+            indices.push_back(at(r + 1, i + 1));
+            indices.push_back(at(r, i + 1));
+        }
+    }
+
+    ctx.draw_triangle_list(
+        std::span<vertex const>{vertices},
+        std::span<std::uint16_t const>{indices}, determinant(transform) < 0);
+}
 
 void text(
     context& ctx, ui::rectangle const& bounds, std::u8string_view text,

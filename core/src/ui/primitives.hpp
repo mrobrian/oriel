@@ -83,6 +83,34 @@ void rectangle(
     context& ctx, ui::rectangle const& bounds, v_patch const& patch,
     color color = colors::white) noexcept;
 
+// Oriel: the ellipse (a circle, for square bounds) inscribed in bounds. With
+// a patch, that part of the texture is stretched over bounds and cut to the
+// ellipse, so a round minimap is one call. rotation (radians, clockwise)
+// turns the texture inside the shape, about the shape's center.
+void ellipse(
+    context& ctx, ui::rectangle const& bounds,
+    color color = colors::white) noexcept;
+
+void ellipse(
+    context& ctx, ui::rectangle const& bounds, patch const& patch,
+    color color = colors::white, float rotation = 0.f) noexcept;
+
+// Oriel: rectangles (flat, and with a patch) are placed on whole pixels, so
+// they're crisp. With this on, they're placed exactly instead: for small
+// images that move with something drawn smoothly (dots and markers on a map
+// that moves by fractions of a pixel), which otherwise jiggle against it.
+// Whoever turns it on turns it off again before others draw.
+void set_subpixel(bool enabled) noexcept;
+
+// Oriel: a filled polygon with a smooth (one pixel, feathered) edge and an
+// optional outline band inside it, outline_width UI pixels wide. points are
+// its corners in order, either way round. It's drawn as a fan from the
+// average of the corners, so the shape must be star-shaped about that point
+// (any convex shape, or an arrow like the minimap's).
+void polygon(
+    context& ctx, std::span<ui::vector const> points, color fill,
+    color outline = colors::transparent, float outline_width = 0.f) noexcept;
+
 // void poly_line(
 //     context& ctx, std::span<ui::vector> points,
 //     color color = colors::white) noexcept;
