@@ -29,6 +29,7 @@
 
 #include <dinput.h>
 
+#include <algorithm>
 #include <vector>
 
 windower::direct_input_keyboard::direct_input_keyboard(
@@ -45,7 +46,39 @@ windower::direct_input_keyboard::direct_input_keyboard(
     }
 
     auto keys = static_cast<::BYTE*>(lpvData);
-    auto& state = core::instance().binding_manager.client_state();
+    auto& bindings = core::instance().binding_manager;
+
+    // Oriel: behave like a real foreground DirectInput keyboard. While the
+    // game isn't the active window, real DirectInput reports the input as
+    // lost, and the game resets its keyboard handling (closing the Alt macro
+    // bar, for example). Without this the game kept seeing the Alt from
+    // Alt+Tab held while in the background, and the macro bar stayed open
+    // after returning. Focus is checked here, every poll, because the game
+    // window's focus messages don't reach Oriel.
+    static auto was_active = true;
+    auto foreground_pid    = ::DWORD{0};
+    ::GetWindowThreadProcessId(::GetForegroundWindow(), &foreground_pid);
+    auto const active = foreground_pid == ::GetCurrentProcessId();
+    if (active != was_active)
+    {
+        was_active = active;
+        try
+        {
+            // Clears Oriel's held keys on both transitions: releases made in
+            // another window never reach us.
+            bindings.lost_focus();
+        }
+        catch (...)
+        {
+        }
+    }
+    if (!active)
+    {
+        std::fill_n(keys, cbData, ::BYTE{0});
+        return DIERR_INPUTLOST;
+    }
+
+    auto& state = bindings.client_state();
     std::copy_n(
         state.begin(), std::min(state.size(), std::size_t(cbData)), keys);
 
