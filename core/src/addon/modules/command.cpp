@@ -34,6 +34,8 @@
 #include "core.hpp"
 
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -132,30 +134,80 @@ int unregister_handler(windower::lua::state s)
     return 0;
 }
 
+// Oriel: command.input, as a Lua C function rather than through the FFI. The
+// command can be handled by Lua in the same add-on (its own command, an
+// unknown command, a command going to the game), and calling back into a Lua
+// state is allowed from a Lua C function but not from a C function called
+// through the FFI. A failing command (a bad bind, say) is reported as a typed
+// one would be, with its message, and the caller goes on.
+int input(windower::lua::state s)
+{
+    using namespace windower;
+
+    auto const command = lua::get<std::u8string>(s, 1);
+    auto const source  = command_source{lua::get<std::int32_t>(s, 2)};
+    try
+    {
+        command_manager::instance().handle_command(command, source);
+    }
+    catch (...)
+    {
+        core::error(u8"command", std::current_exception(), source);
+    }
+    return 0;
 }
 
-extern "C"
+}
+
+// Oriel: offers a command on its way to the game (/ma "Cure" <t>, a line of
+// chat) to every interpreter's core.command.core.client_command handlers, in
+// turn; each can change it or block it. The command to send, or nothing if
+// it was blocked.
+std::optional<std::u8string> windower::trigger_client_command(
+    std::u8string_view command, windower::command_source source)
 {
-    static void input(
-        char8_t const* command_ptr, std::size_t command_length,
-        std::int32_t source)
-    {
-        // Oriel: called through the FFI, where an exception reaches Lua only
-        // as "C++ exception". A failing command (a bad bind, say) is reported
-        // as a typed one would be, with its message, and the caller goes on.
+    std::u8string text{command};
+    bool blocked = false;
+
+    run_on_all_interpreters([&](lua::state s) {
+        if (blocked)
+        {
+            return;
+        }
         try
         {
-            windower::command_manager::instance().handle_command(
-                {command_ptr, command_length},
-                windower::command_source{source});
+            lua::stack_guard guard{s};
+            lua::push(guard, &call_command_handler_key);
+            lua::raw_get(guard, lua::registry);
+            if (lua::typeof(guard, -1) != lua::type::function)
+            {
+                return;
+            }
+            lua::push(guard, false);
+            lua::push(guard, static_cast<std::int32_t>(source));
+            lua::push(guard, text);
+            lua::call(guard, 3, 1);
+            auto const result = lua::typeof(guard, -1);
+            if (result == lua::type::boolean && !lua::get<bool>(guard, -1))
+            {
+                blocked = true;
+            }
+            else if (result == lua::type::string)
+            {
+                text = lua::get<std::u8string>(guard, -1);
+            }
         }
-        catch (...)
+        catch (std::exception const&)
         {
-            windower::core::error(
-                u8"command", std::current_exception(),
-                windower::command_source{source});
+            core::error(u8"command", std::current_exception(), source);
         }
+    });
+
+    if (blocked)
+    {
+        return std::nullopt;
     }
+    return text;
 }
 
 bool windower::trigger_unknown_command(

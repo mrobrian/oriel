@@ -26,6 +26,7 @@
 
 #include "addon/addon.hpp"
 #include "addon/modules/chat.hpp"
+#include "addon/modules/command.hpp"
 #include "addon/modules/event.hpp"
 #include "addon/modules/packet.hpp"
 #include "command_manager.hpp"
@@ -438,9 +439,14 @@ void client_command(
     }
     if (hooks::input_command)
     {
-        hooks::input_command(
-            to_sjis_string(command_manager::unescape(utf8_args.at(0))).c_str(),
-            source);
+        // Oriel: add-ons see the command first and can change or block it
+        // (Windower 4's 'outgoing text').
+        auto const command = trigger_client_command(
+            command_manager::unescape(utf8_args.at(0)), source);
+        if (command)
+        {
+            hooks::input_command(to_sjis_string(*command).c_str(), source);
+        }
     }
 }
 

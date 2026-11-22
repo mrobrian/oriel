@@ -29,10 +29,18 @@
 #include "addon/lua.hpp"
 #include "command_manager.hpp"
 
+#include <optional>
+#include <string>
+#include <string_view>
+
 namespace windower
 {
 
 bool trigger_unknown_command(std::u8string_view command, command_source source);
+// Oriel: a command on its way to the game, after Lua has seen it (nothing if
+// it was blocked).
+std::optional<std::u8string>
+trigger_client_command(std::u8string_view command, command_source source);
 
 int load_command_module(lua::state);
 

@@ -29,7 +29,7 @@ local -- params
     native_register_handler,
     native_unregister_handler,
     native_parse_args,
-    native_input_ptr = ...
+    native_input = ...
 -- LuaFormatter on
 
 local ffi = require('ffi')
@@ -84,6 +84,7 @@ local register_handler
 local unregister_handler
 local call_command_handler
 local unknown_command
+local client_command
 do
     local handlers = {}
 
@@ -119,7 +120,14 @@ do
     end
 
     call_command_handler = function(command, source, ...)
-        if command == nil then
+        if command == false then
+            -- Oriel: a command on its way to the game. Handlers get
+            -- {text, source, blocked} and can change text or set blocked.
+            local t = {text = ..., source = source_map[source], blocked = false}
+            event_trigger(client_command, t)
+            if t.blocked then return false end
+            return t.text
+        elseif command == nil then
             local command_text, handled_value = ...
             local handled = {set = handled_value}
             event_trigger(unknown_command, source, command_text, handled)
@@ -159,6 +167,7 @@ local parse_args = function(arg_string, arg_count)
 end
 
 unknown_command = event.new()
+client_command = event.new()
 
 rawset(registry, call_command_handler_key, call_command_handler)
 
@@ -166,7 +175,8 @@ local command_core = {
     register = register_handler,
     unregister = unregister_handler,
     parse_args = parse_args,
-    unknown_command = unknown_command
+    unknown_command = unknown_command,
+    client_command = client_command
 }
 
 -- High-level API
@@ -867,8 +877,6 @@ end
 
 local input
 do
-    local native_input = ffi.new('void(*)(char const*, size_t, int32_t)',
-                                 native_input_ptr)
     input = function(command, source)
         if type(command) ~= 'string' then
             error('bad argument #1 to \'input\' (string expected, got ' ..
@@ -890,7 +898,7 @@ do
             end
         end
 
-        native_input(command, #command, native_source)
+        native_input(command, native_source)
     end
 end
 
@@ -908,6 +916,7 @@ serializer.register('__command.core.register', register_handler, false)
 serializer.register('__command.core.unregister', unregister_handler, false)
 serializer.register('__command.core.parse_args', parse_args, false)
 serializer.register('__command.core.unknown_command', unknown_command, false)
+serializer.register('__command.core.client_command', client_command, false)
 serializer.register('__command.arg', arg, false)
 serializer.register('__command.new', new, false)
 serializer.register('__command.delete', delete, false)
