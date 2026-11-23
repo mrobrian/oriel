@@ -112,6 +112,13 @@ char32_t decode_single(sjis_char byte) noexcept
 
 char32_t decode_double(sjis_char byte0, sjis_char byte1) noexcept
 {
+    // Oriel: a row of the table covers second bytes 0x1F..0xFF. Lower ones
+    // aren't Shift-JIS, and after 0xFC (the last row) went past the table's
+    // end, which ended the game (gsl::at in noexcept).
+    if (byte1 < 0x1F)
+    {
+        return U'�';
+    }
     byte0 = byte0 < 0xE0 ? byte0 - 0x81
           : byte0 < 0xFA ? byte0 - 0xC1
                          : byte0 - 0xCB;
@@ -306,7 +313,11 @@ void append(
     sjis_string& str, char32_t code_point,
     client_language client_language) noexcept
 {
-    if (code_point <= 0xFFFF)
+    // Oriel: the table stops at U+FFF7, so U+FFF8..U+FFFF (U+FFFD, the
+    // replacement character, among them) fall through to the unknown
+    // character below; gsl::at past its end ended the game (noexcept).
+    if (code_point <= 0xFFFF &&
+        code_point * 2 + 1 < sjis_tables::encode.size())
     {
         if (auto const byte = gsl::at(sjis_tables::encode, code_point * 2))
         {
