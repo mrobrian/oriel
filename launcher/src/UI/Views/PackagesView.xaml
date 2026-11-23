@@ -56,8 +56,13 @@ SOFTWARE.
         <TextBox Grid.Row="1" Margin="12,4" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  ToolTip="{StaticResource Strings.SearchPackages}" FontSize="15"/>
 
-        <CheckBox Grid.Row="2" Margin="12,4,12,0" Content="{StaticResource Strings.ShowLibraries}"
-                  IsChecked="{Binding ShowLibraries}" ToolTip="{StaticResource Strings.ShowLibrariesToolTip}"/>
+        <WrapPanel Grid.Row="2" Margin="12,4,12,0">
+            <CheckBox Content="{StaticResource Strings.ShowLibraries}" Margin="0,0,16,0"
+                      IsChecked="{Binding ShowLibraries}" ToolTip="{StaticResource Strings.ShowLibrariesToolTip}"/>
+            <CheckBox Content="{StaticResource Strings.ShowWindower4}"
+                      IsChecked="{Binding ShowWindower4}" ToolTip="{StaticResource Strings.ShowWindower4ToolTip}"
+                      Visibility="{Binding HasWindower4, Converter={StaticResource Visible}}"/>
+        </WrapPanel>
 
         <TextBlock Grid.Row="3" Margin="12,6,12,2" TextWrapping="Wrap" FontSize="12" LineHeight="16"
                    Foreground="{StaticResource BaseMediumHigh}" Text="{Binding Status}"
@@ -122,7 +127,7 @@ SOFTWARE.
                                     Visibility="{Binding CanRemove, Converter={StaticResource Visible}}"/>
                             <CheckBox Content="{StaticResource Strings.LoadAtStartup}" IsChecked="{Binding LoadAtStartup}"
                                       VerticalAlignment="Center" Margin="4,0,0,0"
-                                      ToolTip="{StaticResource Strings.LoadAtStartupToolTip}"
+                                      ToolTip="{Binding LoadAtStartupToolTip}"
                                       Visibility="{Binding CanLoadAtStartup, Converter={StaticResource Visible}}"/>
                         </WrapPanel>
                     </Grid>

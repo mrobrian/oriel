@@ -59,11 +59,37 @@ namespace Windower.UI.Views
             Description = PackageDescriptions.Get(name, type);
         }
 
+        /// <summary>
+        /// A Windower 4 add-on on disk, which w4compat loads. It can't be installed, updated or removed here.
+        /// </summary>
+        public PackageItemViewModel(PackagesViewModel owner, Windower4Addon addon, bool loadAtStartup)
+            : this(owner, addon?.Name, "addon", null, addon?.Version ?? string.Empty, true, loadAtStartup)
+        {
+            IsWindower4 = true;
+            var description = new System.Text.StringBuilder("Windower 4 add-on");
+            if (!string.IsNullOrEmpty(addon.Author))
+            {
+                description.Append(" by ").Append(addon.Author);
+            }
+            if (addon.Commands.Count > 0)
+            {
+                description.Append(addon.Commands.Count > 1 ? ". Commands: " : ". Command: ")
+                    .Append(string.Join(", ", addon.Commands.Select(c => "/" + c)));
+            }
+            Description = description.Append(". In ").Append(addon.Path).Append('.').ToString();
+        }
+
         public string Name { get; }
+
+        public bool IsWindower4 { get; }
+
+        public string LoadAtStartupToolTip => IsWindower4
+            ? "Load this Windower 4 add-on each time the game starts (saved in autoload.txt in w4compat's user folder)."
+            : "Load this add-on automatically each time the game starts (saved in scripts\\init.lua in your user folder).";
 
         public string Type { get; }
 
-        public string Description { get; }
+        public string Description { get; private set; }
 
         public bool HasDescription => !string.IsNullOrEmpty(Description);
 
@@ -104,6 +130,12 @@ namespace Windower.UI.Views
         {
             get
             {
+                if (IsWindower4)
+                {
+                    return string.IsNullOrEmpty(installedVersion)
+                        ? "Windower 4"
+                        : string.Format(CultureInfo.CurrentCulture, "Windower 4 · {0}", installedVersion);
+                }
                 if (IsLocal)
                 {
                     return string.Format(CultureInfo.CurrentCulture, "Local copy {0}", installedVersion);
@@ -128,7 +160,14 @@ namespace Windower.UI.Views
                 if (loadAtStartup != value)
                 {
                     Set(ref loadAtStartup, value);
-                    owner.SaveStartupList();
+                    if (IsWindower4)
+                    {
+                        owner.SaveWindower4StartupList();
+                    }
+                    else
+                    {
+                        owner.SaveStartupList();
+                    }
                 }
             }
         }
@@ -148,10 +187,13 @@ namespace Windower.UI.Views
         private readonly INavigationService navigation;
         private readonly PackageCatalog catalog;
         private readonly StartupPackages startup;
+        private readonly Windower4Addons windower4;
         private IReadOnlyDictionary<string, AvailablePackage> available =
             new Dictionary<string, AvailablePackage>();
         private string searchText = string.Empty;
         private bool showLibraries;
+        private bool showWindower4 = true;
+        private bool hasWindower4;
         private bool isBusy;
         private string status;
 
@@ -160,9 +202,13 @@ namespace Windower.UI.Views
             this.navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
             catalog = new PackageCatalog(settingsPath);
             startup = new StartupPackages(userPath);
+            windower4 = new Windower4Addons(userPath);
 
             PackagesView = CollectionViewSource.GetDefaultView(Packages);
             PackagesView.Filter = Filter;
+            // Oriel's packages, then the Windower 4 add-ons.
+            PackagesView.SortDescriptions.Add(new SortDescription(nameof(PackageItemViewModel.IsWindower4),
+                ListSortDirection.Ascending));
             PackagesView.SortDescriptions.Add(new SortDescription(nameof(PackageItemViewModel.Name),
                 ListSortDirection.Ascending));
 
@@ -209,6 +255,25 @@ namespace Windower.UI.Views
             }
         }
 
+        public bool ShowWindower4
+        {
+            get => showWindower4;
+            set
+            {
+                Set(ref showWindower4, value);
+                PackagesView.Refresh();
+            }
+        }
+
+        /// <summary>
+        /// Whether w4compat is installed, so Windower 4 add-ons are listed.
+        /// </summary>
+        public bool HasWindower4
+        {
+            get => hasWindower4;
+            private set => Set(ref hasWindower4, value);
+        }
+
         public bool IsBusy
         {
             get => isBusy;
@@ -236,8 +301,9 @@ namespace Windower.UI.Views
             try
             {
                 // Keep the existing order; add newly ticked packages at the end.
-                var current = startup.Load().Where(n => Packages.Any(p => p.Name == n && p.LoadAtStartup)).ToList();
-                current.AddRange(Packages.Where(p => p.LoadAtStartup && !current.Contains(p.Name))
+                var ticked = Packages.Where(p => !p.IsWindower4 && p.LoadAtStartup).ToList();
+                var current = startup.Load().Where(n => ticked.Any(p => p.Name == n)).ToList();
+                current.AddRange(ticked.Where(p => !current.Contains(p.Name))
                     .Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
                 startup.Save(current);
                 Status = IsGameRunning
@@ -250,6 +316,31 @@ namespace Windower.UI.Views
             }
         }
 
+        internal void SaveWindower4StartupList()
+        {
+            try
+            {
+                // Keep the existing order (names not found on disk too, as w4compat does); add newly ticked
+                // add-ons at the end.
+                var rows = Packages.Where(p => p.IsWindower4).ToList();
+                var current = windower4.LoadAutoload()
+                    .Where(n => !rows.Any(p => string.Equals(p.Name, n, StringComparison.OrdinalIgnoreCase)) ||
+                        rows.Any(p => p.LoadAtStartup && string.Equals(p.Name, n, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+                current.AddRange(rows.Where(p => p.LoadAtStartup &&
+                        !current.Contains(p.Name, StringComparer.OrdinalIgnoreCase))
+                    .Select(p => p.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
+                windower4.SaveAutoload(current);
+                Status = IsGameRunning
+                    ? "Saved. Takes effect the next time the game starts; in game, /lua load <name> loads it now."
+                    : null;
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                Status = "Could not save the Windower 4 startup list: " + e.Message;
+            }
+        }
+
         private bool Filter(object item)
         {
             if (!(item is PackageItemViewModel package))
@@ -258,6 +349,11 @@ namespace Windower.UI.Views
             }
 
             if (!showLibraries && package.IsLibrary)
+            {
+                return false;
+            }
+
+            if (!showWindower4 && package.IsWindower4)
             {
                 return false;
             }
@@ -304,6 +400,24 @@ namespace Windower.UI.Views
                 Packages.Add(new PackageItemViewModel(this, name, local?.Type ?? offered?.Type ?? "addon",
                     offered?.Version, local?.Version, local?.IsLocal ?? false, atStartup.Contains(name)));
             }
+
+            // Windower 4 add-ons on disk, when w4compat is there to run them.
+            HasWindower4 = installed.ContainsKey(Windower4Addons.ServiceName);
+            if (HasWindower4)
+            {
+                try
+                {
+                    var autoload = new HashSet<string>(windower4.LoadAutoload(), StringComparer.OrdinalIgnoreCase);
+                    foreach (var addon in windower4.Find())
+                    {
+                        Packages.Add(new PackageItemViewModel(this, addon, autoload.Contains(addon.Name)));
+                    }
+                }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                {
+                    Status = "Could not list Windower 4 add-ons: " + e.Message;
+                }
+            }
             PackagesView.Refresh();
             (UpdateAll as DelegateCommand)?.RaiseCanExecuteChanged();
         }
@@ -334,7 +448,7 @@ namespace Windower.UI.Views
                 // A newly installed add-on loads at startup by default; untick it to opt out.
                 if (newAddon != null)
                 {
-                    var item = Packages.FirstOrDefault(p => p.Name == newAddon.Name);
+                    var item = Packages.FirstOrDefault(p => !p.IsWindower4 && p.Name == newAddon.Name);
                     if (item != null && !item.LoadAtStartup)
                     {
                         item.SetLoadAtStartupSilently(true);

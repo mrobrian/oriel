@@ -79,6 +79,7 @@
     <Compile Include="src\Core\PackageCatalog.cs" />
     <Compile Include="src\Core\PackageDescriptions.cs" />
     <Compile Include="src\Core\StartupPackages.cs" />
+    <Compile Include="src\Core\Windower4Addons.cs" />
     <Compile Include="src\Core\Updater.cs" />
     <Compile Include="src\Core\UpdateStatus.cs" />
     <Compile Include="src\Core\ExtensionMethods.cs" />

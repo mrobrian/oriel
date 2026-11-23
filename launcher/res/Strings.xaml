@@ -176,6 +176,8 @@ SOFTWARE.
     <sys:String x:Key="Strings.SearchPackages">Search packages by name or description</sys:String>
     <sys:String x:Key="Strings.ShowLibraries">Show libraries</sys:String>
     <sys:String x:Key="Strings.ShowLibrariesToolTip">Also list libraries and services. These are used by add-ons and are installed automatically when needed.</sys:String>
+    <sys:String x:Key="Strings.ShowWindower4">Show Windower 4 add-ons</sys:String>
+    <sys:String x:Key="Strings.ShowWindower4ToolTip">Also list the Windower 4 add-ons found on disk, which the w4compat package runs. Tick one to load it each time the game starts.</sys:String>
     <sys:String x:Key="Strings.Update">Update</sys:String>
     <sys:String x:Key="Strings.UpdateAll">Update all</sys:String>
     <sys:String x:Key="Strings.Remove">Remove</sys:String>
