@@ -31,11 +31,97 @@
 #include "utilities/coroutine.hpp"
 #include "utility.hpp"
 
+#include "addon/addon.hpp"
+#include "addon/addon_manager.hpp"
+#include "addon/package_manager.hpp"
+
+#include <algorithm>
 #include <limits>
+#include <map>
 
 namespace
 {
 constexpr auto unlimited = std::numeric_limits<std::size_t>::max();
+
+// Oriel: package commands say in chat what they did, wherever they're run
+// from (typed, a binding, init.lua or an add-on).
+void say(std::u8string_view text)
+{
+    windower::core::output(u8"Oriel", text, windower::command_source::user);
+}
+
+// A version as people write it: 1.2.0.0 is "1.2", 1.2.3.0 is "1.2.3".
+std::u8string short_version(windower::package_version const& v)
+{
+    using windower::to_u8string;
+    std::u8string result = to_u8string(v.major) + u8"." + to_u8string(v.minor);
+    if (v.revision != 0 || v.build != 0)
+    {
+        result += u8"." + to_u8string(v.revision);
+    }
+    if (v.build != 0)
+    {
+        result += u8"." + to_u8string(v.build);
+    }
+    if (!v.tag.empty())
+    {
+        result += u8" " + v.tag;
+    }
+    return result;
+}
+
+bool is_loaded(std::u8string_view name)
+{
+    return windower::core::instance().addon_manager->get(name) != nullptr;
+}
+
+// "altana 1.2", or just the name if it's no longer installed.
+std::u8string name_and_version(std::u8string const& name)
+{
+    auto const package =
+        windower::core::instance().package_manager->get_package(name);
+    return package ? name + u8" " + short_version(package->version()) : name;
+}
+
+// The names that are installed packages other than libraries; the rest are
+// reported and left out.
+std::vector<std::u8string> packages_named(std::vector<std::u8string> const& args)
+{
+    auto const& core = windower::core::instance();
+    std::vector<std::u8string> names;
+    for (auto const& name : args)
+    {
+        auto const package = core.package_manager->get_package(name);
+        if (!package)
+        {
+            say(u8"No package named " + name + u8" is installed.");
+        }
+        else if (package->type() == windower::package_type::library)
+        {
+            say(name +
+                u8" is a library: the add-ons that use it load it.");
+        }
+        else if (std::find(names.begin(), names.end(), name) == names.end())
+        {
+            names.push_back(name);
+        }
+    }
+    return names;
+}
+
+std::size_t loaded_addon_count()
+{
+    auto const& loaded = windower::core::instance().addon_manager->loaded();
+    return gsl::narrow_cast<std::size_t>(std::count_if(
+        loaded.begin(), loaded.end(), [](auto const& a) {
+            return a->package()->type() == windower::package_type::addon;
+        }));
+}
+
+std::u8string plural(std::size_t n, std::u8string_view one, std::u8string_view many)
+{
+    return windower::to_u8string(n) + u8" " + std::u8string{n == 1 ? one : many};
+}
 
 void check_args(
     std::u8string_view command_name, std::vector<std::u8string> const& args,
@@ -179,7 +265,33 @@ void windower::command_handlers::load(
     auto const& core = core::instance();
     if (core.addon_manager)
     {
-        core.addon_manager->load(args);
+        std::vector<std::u8string> names;
+        for (auto const& name : packages_named(args))
+        {
+            if (is_loaded(name))
+            {
+                say(name + u8" is already loaded (/reload " + name +
+                    u8" to load it again).");
+            }
+            else
+            {
+                names.push_back(name);
+            }
+        }
+        if (names.empty())
+        {
+            return;
+        }
+        core.addon_manager->load(names);
+        // An add-on's /load waits until add-ons finish running.
+        core.addon_manager->after_pending_changes([names]() {
+            for (auto const& name : names)
+            {
+                say(is_loaded(name)
+                        ? u8"Loaded " + name_and_version(name) + u8"."
+                        : name + u8" didn't load.");
+            }
+        });
     }
     else
     {
@@ -194,7 +306,30 @@ void windower::command_handlers::unload(
     auto const& core = core::instance();
     if (core.addon_manager)
     {
-        core.addon_manager->unload(args);
+        std::vector<std::u8string> names;
+        for (auto const& name : packages_named(args))
+        {
+            if (is_loaded(name))
+            {
+                names.push_back(name);
+            }
+            else
+            {
+                say(name + u8" isn't loaded.");
+            }
+        }
+        if (names.empty())
+        {
+            return;
+        }
+        core.addon_manager->unload(names);
+        core.addon_manager->after_pending_changes([names]() {
+            for (auto const& name : names)
+            {
+                say(is_loaded(name) ? name + u8" is still loaded."
+                                    : u8"Unloaded " + name + u8".");
+            }
+        });
     }
     else
     {
@@ -209,7 +344,31 @@ void windower::command_handlers::reload(
     auto const& core = core::instance();
     if (core.addon_manager)
     {
-        core.addon_manager->reload(args);
+        auto const names = packages_named(args);
+        if (names.empty())
+        {
+            return;
+        }
+        std::map<std::u8string, bool> was_loaded;
+        for (auto const& name : names)
+        {
+            was_loaded[name] = is_loaded(name);
+        }
+        core.addon_manager->reload(names);
+        core.addon_manager->after_pending_changes([names, was_loaded]() {
+            for (auto const& name : names)
+            {
+                if (!is_loaded(name))
+                {
+                    say(name + u8" didn't load.");
+                }
+                else
+                {
+                    say((was_loaded.at(name) ? u8"Reloaded " : u8"Loaded ") +
+                        name_and_version(name) + u8".");
+                }
+            }
+        });
     }
     else
     {
@@ -224,7 +383,11 @@ void windower::command_handlers::unloadall(
     auto const& core = core::instance();
     if (core.addon_manager)
     {
+        auto const count = loaded_addon_count();
         core.addon_manager->unload_all();
+        core.addon_manager->after_pending_changes([count]() {
+            say(u8"Unloaded " + plural(count, u8"add-on", u8"add-ons") + u8".");
+        });
     }
     else
     {
@@ -241,6 +404,10 @@ void windower::command_handlers::reloadall(
     if (core.addon_manager)
     {
         core.addon_manager->reload_all();
+        core.addon_manager->after_pending_changes([]() {
+            say(u8"Reloaded " +
+                plural(loaded_addon_count(), u8"add-on", u8"add-ons") + u8".");
+        });
     }
     else
     {
@@ -345,7 +512,49 @@ void windower::command_handlers::pkg(
     if (gsl::at(args, 0) == u8"reload")
     {
         check_args(u8"/pkg", args, 1);
+        // Oriel: say what changed (added, removed or a new version).
+        std::map<std::u8string, std::u8string> before;
+        for (auto const& p : core.package_manager->installed_packages())
+        {
+            before[p->name()] = to_u8string(p->version());
+        }
         core.package_manager->reset();
+        std::vector<std::u8string> changed;
+        for (auto const& p : core.package_manager->installed_packages())
+        {
+            auto const it = before.find(p->name());
+            if (it == before.end() || it->second != to_u8string(p->version()))
+            {
+                changed.push_back(p->name());
+            }
+            if (it != before.end())
+            {
+                before.erase(it);
+            }
+        }
+        for (auto const& gone : before)
+        {
+            changed.push_back(gone.first);
+        }
+        std::sort(changed.begin(), changed.end());
+        std::u8string message = u8"Reloaded the package list (";
+        if (changed.empty())
+        {
+            message += u8"no changes";
+        }
+        else
+        {
+            message += plural(changed.size(), u8"changed", u8"changed");
+            if (changed.size() <= 6)
+            {
+                message += u8": ";
+                for (std::size_t i = 0; i < changed.size(); ++i)
+                {
+                    message += (i == 0 ? u8"" : u8", ") + gsl::at(changed, i);
+                }
+            }
+        }
+        say(message + u8").");
     }
     else if (gsl::at(args, 0) == u8"listsrc")
     {
