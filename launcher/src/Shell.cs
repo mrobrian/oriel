@@ -45,15 +45,27 @@ namespace Windower
             catch (EntryPointNotFoundException) { }
         }
 
-        public static void CreateLink(string path, string exe, string args)
+        public static void CreateLink(string path, string exe, string args, string description = null)
         {
             var o = new CShellLink();
             var link = (IShellLink)o;
-            var file = (IPersistFile)o;
-            link.SetPath(exe);
-            link.SetArguments(args);
-            file.Save(path, true);
-            Marshal.ReleaseComObject(link);
+            try
+            {
+                var file = (IPersistFile)o;
+                link.SetPath(exe);
+                link.SetArguments(args);
+                // Oriel: start in the launcher's folder, and say what the shortcut does.
+                link.SetWorkingDirectory(System.IO.Path.GetDirectoryName(exe));
+                if (!string.IsNullOrEmpty(description))
+                {
+                    link.SetDescription(description);
+                }
+                file.Save(path, true);
+            }
+            finally
+            {
+                Marshal.ReleaseComObject(link);
+            }
         }
 
         [ComImport]

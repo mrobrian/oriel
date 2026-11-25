@@ -195,15 +195,38 @@ namespace Windower.UI.Views
             }
         }
 
+        // A desktop shortcut that starts the game with this profile straight away (oriel.exe launch "name").
         private void ExecuteCreateProfileLink(object arg)
         {
             var profile = (Profile)SelectedProfile;
-            var format = System.Windows.Application.Current.TryFindResource("Strings.ProfileLinkFormat") as string;
-            var name = string.Format(CultureInfo.InvariantCulture, format, profile.Name);
-            name = Path.GetInvalidPathChars().Aggregate(name, (s, c) => s.Replace(c.ToString(), string.Empty)) + ".lnk";
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), name);
-            var args = GetLaunchArgs(profile);
-            Shell.CreateLink(path, executablePath, args);
+            var resources = Application.Current;
+            string Text(string key, string fallback) => resources.TryFindResource(key) as string ?? fallback;
+
+            var name = string.Format(CultureInfo.CurrentCulture, Text("Strings.ProfileLinkFormat", "Oriel ({0})"),
+                profile.Name);
+            // Oriel: file-name characters, not path ones (a profile named "Main: Kerelydd" made it fail).
+            name = Path.GetInvalidFileNameChars().Aggregate(name, (s, c) => s.Replace(c.ToString(), string.Empty))
+                .Trim();
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), name + ".lnk");
+            var description = string.Format(CultureInfo.CurrentCulture,
+                Text("Strings.ProfileLinkDescription", "Start FINAL FANTASY XI with Oriel's \"{0}\" profile"), profile.Name);
+            var title = Text("Strings.CreateProfileLink", "Create desktop shortcut");
+            var owner = resources.MainWindow;
+            try
+            {
+                Shell.CreateLink(path, executablePath, GetLaunchArgs(profile), description);
+                var done = string.Format(CultureInfo.CurrentCulture, Text("Strings.ProfileLinkCreated",
+                    "\"{0}\" is on your desktop. It starts the game with the {1} profile straight away."), name,
+                    profile.Name);
+                MessageBox.Show(owner, done, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception e) when (e is System.Runtime.InteropServices.COMException || e is IOException ||
+                e is UnauthorizedAccessException || e is ArgumentException)
+            {
+                var failed = string.Format(CultureInfo.CurrentCulture, Text("Strings.ProfileLinkFailed",
+                    "Could not create the shortcut: {0}"), e.Message);
+                MessageBox.Show(owner, failed, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private void ExecuteOpenAboutPage(object arg) => navigation.Open(this, "About");

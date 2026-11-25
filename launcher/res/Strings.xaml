@@ -131,8 +131,11 @@ SOFTWARE.
     <sys:String x:Key="Strings.FixAccessControlPrompt">Administrator access required</sys:String>
     <sys:String x:Key="Strings.FixAccessControlDescription">PlayOnline Viewer currently requires administrator access to run. Would you like us to make adjustments to PlayOnline Viewer so that it can run without administrator access?</sys:String>
     <sys:String x:Key="Strings.DoNotAskAgain">Don't ask me again</sys:String>
-    <sys:String x:Key="Strings.CreateProfileLink">Pin to desktop</sys:String>
+    <sys:String x:Key="Strings.CreateProfileLink">Create desktop shortcut</sys:String>
     <sys:String x:Key="Strings.ProfileLinkFormat">Oriel ({0})</sys:String>
+    <sys:String x:Key="Strings.ProfileLinkDescription">Start FINAL FANTASY XI with Oriel's "{0}" profile</sys:String>
+    <sys:String x:Key="Strings.ProfileLinkCreated">"{0}" is on your desktop. It starts the game with the {1} profile straight away.</sys:String>
+    <sys:String x:Key="Strings.ProfileLinkFailed">Could not create the shortcut: {0}</sys:String>
     <sys:String x:Key="Strings.CopyProfile">Create copy</sys:String>
     <sys:String x:Key="Strings.ProfileCopyNameFormat">{0} (Copy {1})</sys:String>
     <sys:String x:Key="Strings.ClientNotFound">Oriel could not locate Final Fantasy XI.</sys:String>
