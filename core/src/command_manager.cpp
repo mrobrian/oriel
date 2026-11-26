@@ -549,8 +549,11 @@ void windower::command_manager::handle_command(
     std::u8string_view command_string, command_source const source)
 {
     // Oriel: Windower 4's "//command" (its way to run a Windower command from
-    // the chat line, macros and scripts) runs "/command".
-    if (command_string.starts_with(u8"//"))
+    // the chat line, macros and scripts) runs "/command", but never as one of
+    // the game's own commands: "//sc" is Skillchains' command, while "/sc" is
+    // the game's.
+    auto const windower_only = command_string.starts_with(u8"//");
+    if (windower_only)
     {
         command_string.remove_prefix(1);
     }
@@ -570,7 +573,8 @@ void windower::command_manager::handle_command(
         }
     }
 
-    while (auto descriptor = find(command_string, component, command))
+    while (auto descriptor =
+               find(command_string, component, command, windower_only))
     {
         auto lock = descriptor->tag.lock();
         if (!lock)
@@ -643,13 +647,18 @@ windower::command_manager::resolve_alias(std::u8string_view name) const
 
 windower::command_manager::descriptor const* windower::command_manager::find(
     std::u8string_view command_string, std::optional<u8range> component,
-    u8range command) const
+    u8range command, bool skip_client) const
 {
     name_view const name{
         substring(command_string, component),
         substring(command_string, command)};
     for (auto& commands : m_commands)
     {
+        if (skip_client &&
+            &commands == &m_commands.at(gsl::narrow_cast<int>(layer::client)))
+        {
+            continue;
+        }
         auto const bounds =
             std::equal_range(commands.begin(), commands.end(), name);
         auto const count = std::distance(bounds.first, bounds.second);

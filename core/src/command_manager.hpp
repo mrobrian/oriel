@@ -134,7 +134,8 @@ private:
     std::optional<std::u8string_view> resolve_alias(std::u8string_view) const;
 
     descriptor const*
-        find(std::u8string_view, std::optional<u8range>, u8range) const;
+        find(std::u8string_view, std::optional<u8range>, u8range,
+             bool skip_client = false) const;
 };
 
 }
