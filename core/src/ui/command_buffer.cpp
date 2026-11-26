@@ -79,7 +79,7 @@ void command_buffer::clear() noexcept
     namespace range = std::ranges;
 
     m_commands.clear();
-    range::fill(m_state, 0);
+    range::fill(m_state, unknown_state);
 }
 
 }

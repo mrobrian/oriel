@@ -56,6 +56,14 @@ void set_texture_command::execute(::IDirect3DDevice8* d3d_device) const noexcept
     Expects(d3d_device != nullptr);
 
     d3d_device->SetTexture(0, m_ptr);
+
+    // Oriel: with no texture, draw the vertex colour alone. Stage 0 multiplies
+    // it by the texture, and what a missing texture reads as is up to the
+    // driver: Direct3D 8 gives white, but D3D8-to-11 wrappers (dgVoodoo and
+    // the like) give transparent, which hid every plain coloured rectangle.
+    auto const op = m_ptr ? D3DTOP_MODULATE : D3DTOP_SELECTARG1;
+    d3d_device->SetTextureStageState(0, D3DTSS_COLOROP, op);
+    d3d_device->SetTextureStageState(0, D3DTSS_ALPHAOP, op);
 }
 
 void set_texture_command::stitch(pointer ptr) noexcept { m_ptr = ptr; }

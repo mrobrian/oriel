@@ -152,7 +152,13 @@ private:
     };
 
     std::vector<wrapped_command> m_commands;
-    std::array<std::uintptr_t, 3> m_state = {};
+    // Oriel: starts as "unknown" (not 0, which means "no texture"), so a
+    // buffer's first state command is always sent. The device can still hold
+    // a texture from an earlier buffer or the game, and a plain rectangle drawn
+    // first in a buffer was skipping its "no texture" and drew with that one.
+    static constexpr std::uintptr_t unknown_state = ~std::uintptr_t{};
+    std::array<std::uintptr_t, 3> m_state = {
+        unknown_state, unknown_state, unknown_state};
 };
 
 }
